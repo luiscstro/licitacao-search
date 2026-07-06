@@ -1,22 +1,4 @@
 #!/usr/bin/env python3
-"""
-Buscador automático de licitações - PNCP (Portal Nacional de Contratações Públicas)
-=====================================================================================
-
-Diferente da versão anterior (ConLicitação), esse script usa a API OFICIAL e
-PÚBLICA do governo. Não precisa de login, cookie, nem nada — só rodar.
-
-Fonte oficial: https://pncp.gov.br/api/consulta
-Documentação: Manual PNCP API Consultas - Versão 1.0
-
-Como usar:
-    1. pip install requests
-    2. python3 buscar_licitacoes.py
-    3. Abra o arquivo licitacoes.html que foi gerado
-
-Esse script não depende de sessão/cookie — pode ser agendado pra rodar
-automaticamente (cron, GitHub Actions, etc.) sem manutenção.
-"""
 
 import re
 import json
@@ -27,42 +9,18 @@ from pathlib import Path
 
 import requests
 
-# ============================================================
-# CONFIGURAÇÃO — edite aqui conforme sua necessidade
-# ============================================================
-
-# Palavras-chave que definem uma licitação de interesse
 KEYWORDS = ["apoio administrativo", "limpeza", "recepção", "recepcionista", "copeiragem"]
-
-# Valor estimado máximo aceito (R$)
 VALOR_MAXIMO = 20_000_000.00
-
-# Estados aceitos (região próxima a São Luís/MA)
 ESTADOS_PERMITIDOS = ["MA", "PI", "PA", "TO", "CE"]
-
-# Só aceitar licitações cujo texto mencione dedicação exclusiva de mão de obra
 EXIGIR_DEDICACAO_EXCLUSIVA = True
-
-# Códigos de modalidade a buscar (vide tabela de domínio do PNCP).
-# 6 = Pregão Eletrônico | 7 = Pregão Presencial
 MODALIDADES = [6]
-
-# Não aceitar licitações cujo prazo de proposta encerre hoje
 EXCLUIR_PRAZO_HOJE = True
-
-# Até quantos dias no futuro buscar contratações com proposta em aberto
 JANELA_DIAS = 60
-
 BASE_URL = "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta"
 TAMANHO_PAGINA = 20
-PAUSA_ENTRE_REQUISICOES = 1.5  # segundos entre cada requisição — educado com o servidor público
-MAX_TENTATIVAS = 6  # quantas vezes tenta de novo se receber 429 (rate limit)
-ESPERA_INICIAL_RETRY = 5  # segundos — dobra a cada nova tentativa (5, 10, 20, 40...)
-
-# ============================================================
-# LÓGICA — normalmente não precisa mexer daqui pra baixo
-# ============================================================
-
+PAUSA_ENTRE_REQUISICOES = 1.5
+MAX_TENTATIVAS = 6
+ESPERA_INICIAL_RETRY = 5
 
 def normalizar(texto: str) -> str:
     if not texto:
@@ -70,7 +28,6 @@ def normalizar(texto: str) -> str:
     texto = unicodedata.normalize("NFKD", texto)
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     return texto.lower()
-
 
 def buscar_pagina(session: requests.Session, uf: str, modalidade: int, data_final: str, pagina: int) -> dict:
     params = {
@@ -96,17 +53,15 @@ def buscar_pagina(session: requests.Session, uf: str, modalidade: int, data_fina
             continue
 
         if resp.status_code == 429:
-            # Respeita o header Retry-After se o servidor mandar; senão usa backoff exponencial
             espera_servidor = resp.headers.get("Retry-After")
             tempo_espera = float(espera_servidor) if espera_servidor else espera
             print(f"  ⚠ Rate limit (429). Esperando {tempo_espera:.0f}s e tentando de novo "
                   f"({tentativa}/{MAX_TENTATIVAS})...")
             time.sleep(tempo_espera)
-            espera *= 2  # próxima espera é o dobro, se precisar
+            espera *= 2
             continue
 
         if resp.status_code >= 500:
-            # Erro do próprio servidor do PNCP (instabilidade momentânea) — também vale tentar de novo
             print(f"  ⚠ Erro do servidor ({resp.status_code}). Esperando {espera:.0f}s e tentando de novo "
                   f"({tentativa}/{MAX_TENTATIVAS})...")
             time.sleep(espera)
@@ -114,7 +69,6 @@ def buscar_pagina(session: requests.Session, uf: str, modalidade: int, data_fina
             continue
 
         if resp.status_code == 204:
-            # Sem conteúdo = não há mais resultados para essa consulta
             return {}
 
         resp.raise_for_status()
@@ -125,9 +79,7 @@ def buscar_pagina(session: requests.Session, uf: str, modalidade: int, data_fina
         "O servidor do PNCP pode estar instável agora — tente rodar de novo em alguns minutos."
     )
 
-
 def coletar_todas(session: requests.Session) -> dict:
-    """Busca todas as páginas, para cada UF e modalidade, deduplicando por numeroControlePNCP."""
     data_final = (date.today() + timedelta(days=JANELA_DIAS)).strftime("%Y%m%d")
     encontradas = {}
 
@@ -144,7 +96,6 @@ def coletar_todas(session: requests.Session) -> dict:
                     print(f"    (os resultados já coletados de outros estados não são perdidos)")
                     break
 
-                # A API retorna 204 No Content (corpo vazio) quando não há mais resultados
                 if not data:
                     break
 
@@ -165,7 +116,6 @@ def coletar_todas(session: requests.Session) -> dict:
 
     return encontradas
 
-
 def passa_filtros(c: dict) -> tuple[bool, list[str]]:
     motivos = []
 
@@ -173,13 +123,11 @@ def passa_filtros(c: dict) -> tuple[bool, list[str]]:
         (c.get("objetoCompra") or "") + " " + (c.get("informacaoComplementar") or "")
     )
 
-    # 1. Palavra-chave
     kw_hits = [kw for kw in KEYWORDS if normalizar(kw) in texto_completo]
     if not kw_hits:
         return False, []
     motivos.append("Palavras-chave: " + ", ".join(kw_hits))
 
-    # 2. Valor estimado
     valor = c.get("valorTotalEstimado") or 0
     if valor > VALOR_MAXIMO:
         return False, []
@@ -188,14 +136,12 @@ def passa_filtros(c: dict) -> tuple[bool, list[str]]:
     else:
         motivos.append(f"Valor: R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
-    # 3. Dedicação exclusiva de mão de obra
     if EXIGIR_DEDICACAO_EXCLUSIVA:
         tem_demo = ("dedicacao exclusiva" in texto_completo) or ("demo" in texto_completo)
         if not tem_demo:
             return False, []
         motivos.append("DEMO: sim")
 
-    # 4. Prazo não pode ser hoje
     if EXCLUIR_PRAZO_HOJE:
         prazo_str = c.get("dataEncerramentoProposta") or c.get("dataAberturaProposta")
         if prazo_str:
@@ -207,7 +153,6 @@ def passa_filtros(c: dict) -> tuple[bool, list[str]]:
                 pass
 
     return True, motivos
-
 
 def calcular_score(c: dict) -> float:
     texto_completo = normalizar((c.get("objetoCompra") or "") + " " + (c.get("informacaoComplementar") or ""))
@@ -226,7 +171,6 @@ def calcular_score(c: dict) -> float:
 
     return score
 
-
 def dias_ate(data_str: str) -> str:
     if not data_str:
         return "—"
@@ -241,9 +185,7 @@ def dias_ate(data_str: str) -> str:
     except ValueError:
         return data_str
 
-
 def montar_link_edital(c: dict) -> str:
-    """Reconstrói a URL pública do edital no site do PNCP a partir do número de controle."""
     orgao = c.get("orgaoEntidade") or {}
     cnpj = orgao.get("cnpj")
     ano = c.get("anoCompra")
@@ -251,7 +193,6 @@ def montar_link_edital(c: dict) -> str:
     if cnpj and ano and sequencial:
         return f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
     return ""
-
 
 def gerar_html(itens_filtrados: list[dict], caminho_saida: Path):
     linhas_html = []
@@ -328,7 +269,6 @@ def gerar_html(itens_filtrados: list[dict], caminho_saida: Path):
 
 
 def gerar_html_do_banco(licitacoes: list[dict], caminho_saida: Path):
-    """Mesmo dashboard de antes, mas lendo do banco (já com histórico e marca de 'nova')."""
     import db as db_module
 
     linhas_html = []
@@ -398,7 +338,6 @@ def gerar_html_do_banco(licitacoes: list[dict], caminho_saida: Path):
 
     caminho_saida.write_text(html, encoding="utf-8")
 
-
 def main():
     import db as db_module
 
@@ -433,7 +372,6 @@ def main():
     gerar_html_do_banco(licitacoes_ativas, saida)
     print(f"\nDashboard gerado em: {saida.resolve()}")
     print(f"Banco de dados em: {db_module.CAMINHO_DB.resolve()}")
-
 
 if __name__ == "__main__":
     main()

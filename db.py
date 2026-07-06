@@ -1,13 +1,3 @@
-"""
-Módulo de banco de dados - Buscador de Licitações
-====================================================
-
-Usa SQLite (arquivo local, sem precisar instalar servidor de banco).
-Guarda o histórico de licitações encontradas, controla quais ainda
-estão "ativas" (ainda aparecem nas buscas mais recentes) e quais somem
-(prazo encerrou ou foram retiradas), e marca quais são novas em cada rodada.
-"""
-
 import sqlite3
 import json
 from datetime import datetime
@@ -21,9 +11,7 @@ def conectar() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     return conn
 
-
 def inicializar_db():
-    """Cria a tabela se ela ainda não existir. Seguro rodar várias vezes."""
     conn = conectar()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS licitacoes (
@@ -47,17 +35,8 @@ def inicializar_db():
     conn.commit()
     conn.close()
 
-
 def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
-    """
-    Recebe a lista de (contratacao_dict, motivos, score) que passou nos filtros
-    NESTA rodada, e sincroniza com o banco:
-    - Item novo -> insere com primeira_vez_vista = agora
-    - Item que já existia -> atualiza dados e ultima_vez_vista, mantém primeira_vez_vista
-    - Item que existia mas NÃO veio nesta rodada -> marca ativa = 0
-      (proposta provavelmente encerrou ou saiu dos critérios)
-    """
-    from buscar_licitacoes import montar_link_edital  # import local pra evitar ciclo
+    from buscar_licitacoes import montar_link_edital
 
     conn = conectar()
     agora = datetime.now().isoformat(timespec="seconds")
@@ -115,7 +94,6 @@ def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
             agora,
         ))
 
-    # Marca como inativas as que não vieram nesta rodada
     if ids_desta_rodada:
         placeholders = ",".join("?" * len(ids_desta_rodada))
         conn.execute(
@@ -135,9 +113,7 @@ def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
     conn.close()
     return {"novas_nesta_rodada": novas, "total_ativas": total_ativas}
 
-
 def listar_ativas() -> list[dict]:
-    """Retorna todas as licitações atualmente ativas, ordenadas por score."""
     conn = conectar()
     linhas = conn.execute(
         "SELECT * FROM licitacoes WHERE ativa = 1 ORDER BY score DESC"
@@ -145,7 +121,5 @@ def listar_ativas() -> list[dict]:
     conn.close()
     return [dict(linha) for linha in linhas]
 
-
 def eh_nova(licitacao_row: dict) -> bool:
-    """Considera 'nova' se a primeira e a última vez vista são a mesma execução."""
     return licitacao_row["primeira_vez_vista"] == licitacao_row["ultima_vez_vista"]
