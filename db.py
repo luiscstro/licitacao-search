@@ -1,3 +1,13 @@
+"""
+Módulo de banco de dados - Buscador de Licitações
+====================================================
+
+Usa SQLite (arquivo local, sem precisar instalar servidor de banco).
+Guarda o histórico de licitações encontradas, controla quais ainda
+estão "ativas" (ainda aparecem nas buscas mais recentes) e quais somem
+(prazo encerrou ou foram retiradas), e marca quais são novas em cada rodada.
+"""
+
 import sqlite3
 import json
 from datetime import datetime
@@ -11,7 +21,9 @@ def conectar() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def inicializar_db():
+    """Cria a tabela se ela ainda não existir. Seguro rodar várias vezes."""
     conn = conectar()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS licitacoes (
@@ -29,14 +41,24 @@ def inicializar_db():
             motivos TEXT,
             primeira_vez_vista TEXT,
             ultima_vez_vista TEXT,
+            vezes_vista INTEGER DEFAULT 1,
             ativa INTEGER DEFAULT 1
         )
     """)
     conn.commit()
     conn.close()
 
+
 def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
-    from buscar_licitacoes import montar_link_edital
+    """
+    Recebe a lista de (contratacao_dict, motivos, score) que passou nos filtros
+    NESTA rodada, e sincroniza com o banco:
+    - Item novo -> insere com primeira_vez_vista = agora
+    - Item que já existia -> atualiza dados e ultima_vez_vista, mantém primeira_vez_vista
+    - Item que existia mas NÃO veio nesta rodada -> marca ativa = 0
+      (proposta provavelmente encerrou ou saiu dos critérios)
+    """
+    from buscar_licitacoes_pncp import montar_link_edital  # import local pra evitar ciclo
 
     conn = conectar()
     agora = datetime.now().isoformat(timespec="seconds")
@@ -61,8 +83,9 @@ def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
             INSERT INTO licitacoes (
                 numero_controle, orgao, cidade, uf, objeto, valor_estimado,
                 modalidade, data_abertura_proposta, data_encerramento_proposta,
-                link_edital, score, motivos, primeira_vez_vista, ultima_vez_vista, ativa
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                link_edital, score, motivos, primeira_vez_vista, ultima_vez_vista,
+                vezes_vista, ativa
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
             ON CONFLICT(numero_controle) DO UPDATE SET
                 orgao=excluded.orgao,
                 cidade=excluded.cidade,
@@ -76,6 +99,7 @@ def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
                 score=excluded.score,
                 motivos=excluded.motivos,
                 ultima_vez_vista=excluded.ultima_vez_vista,
+                vezes_vista=licitacoes.vezes_vista + 1,
                 ativa=1
         """, (
             numero_controle,
@@ -94,6 +118,7 @@ def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
             agora,
         ))
 
+    # Marca como inativas as que não vieram nesta rodada
     if ids_desta_rodada:
         placeholders = ",".join("?" * len(ids_desta_rodada))
         conn.execute(
@@ -106,14 +131,16 @@ def salvar_resultado_da_rodada(itens_aprovados: list[tuple]):
     conn.commit()
 
     novas = conn.execute(
-        "SELECT COUNT(*) as n FROM licitacoes WHERE primeira_vez_vista = ultima_vez_vista AND ativa = 1"
+        "SELECT COUNT(*) as n FROM licitacoes WHERE vezes_vista = 1 AND ativa = 1"
     ).fetchone()["n"]
     total_ativas = conn.execute("SELECT COUNT(*) as n FROM licitacoes WHERE ativa = 1").fetchone()["n"]
 
     conn.close()
     return {"novas_nesta_rodada": novas, "total_ativas": total_ativas}
 
+
 def listar_ativas() -> list[dict]:
+    """Retorna todas as licitações atualmente ativas, ordenadas por score."""
     conn = conectar()
     linhas = conn.execute(
         "SELECT * FROM licitacoes WHERE ativa = 1 ORDER BY score DESC"
@@ -121,5 +148,7 @@ def listar_ativas() -> list[dict]:
     conn.close()
     return [dict(linha) for linha in linhas]
 
+
 def eh_nova(licitacao_row: dict) -> bool:
-    return licitacao_row["primeira_vez_vista"] == licitacao_row["ultima_vez_vista"]
+    """Considera 'nova' se essa é a primeira vez que essa licitação foi vista (nunca em rodadas anteriores)."""
+    return licitacao_row["vezes_vista"] == 1
