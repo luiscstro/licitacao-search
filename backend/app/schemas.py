@@ -1,14 +1,7 @@
-"""
-Schemas Pydantic — definem o formato dos dados que entram e saem da API.
-FastAPI usa isso pra validar automaticamente e gerar a documentação (/docs).
-"""
-
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, ConfigDict
 
-
-# ---------- Usuário ----------
 
 class UsuarioCriar(BaseModel):
     email: EmailStr
@@ -34,16 +27,13 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-# ---------- Critério ----------
-
 class CriterioBase(BaseModel):
     nome: str = "Meu critério"
     palavra_obrigatoria: str
     palavras_bonus: str = ""
     valor_minimo: float = 0
     valor_maximo: float = 999_999_999
-    estados_permitidos: str = ""  # ex: "MA,PI,PA,TO,CE" — vazio = todos os estados
-    exigir_dedicacao_exclusiva: bool = True
+    estados_permitidos: str = ""
     exigir_pregao: bool = True
 
 

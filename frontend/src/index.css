@@ -1,20 +1,19 @@
 :root {
-  /* ---- Paleta ---- */
-  --ink: #16233d;          /* navy profundo — cabeçalhos, sidebar */
+  --ink: #16233d;          
   --ink-soft: #2b3a5a;
-  --paper: #f7f5f0;        /* branco quente, papel de gazeta oficial */
+  --paper: #f7f5f0;        
   --paper-card: #ffffff;
-  --selo-gold: #b8892b;    /* dourado de selo/carimbo — destaque principal */
+  --selo-gold: #b8892b;    
   --selo-gold-soft: #f4e9d3;
-  --verde-protocolo: #2f6b4f;   /* aprovado / ativo */
+  --verde-protocolo: #2f6b4f;   
   --verde-protocolo-soft: #e3efe8;
-  --terracota: #b14b3b;    /* urgência / prazo curto */
+  --terracota: #b14b3b;    
   --terracota-soft: #f5e4e0;
-  --slate: #4b5563;        /* texto secundário */
-  --slate-line: #d9d5c9;   /* linhas divisórias sobre o papel */
+  --slate: #4b5563;        
+  --slate-line: #d9d5c9;   
   --linha: #e4e0d4;
 
-  /* ---- Tipografia ---- */
+
   --fonte-display: "Source Serif 4", Georgia, serif;
   --fonte-ui: "IBM Plex Sans", -apple-system, sans-serif;
   --fonte-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -63,10 +62,6 @@ a:focus-visible {
 ::selection {
   background: var(--selo-gold-soft);
 }
-
-/* ============================================================
-   Layout geral do app (sidebar + conteúdo)
-   ============================================================ */
 
 .app-shell {
   display: flex;
@@ -161,11 +156,6 @@ a:focus-visible {
   .conteudo { padding: 24px; }
 }
 
-/* ============================================================
-   O carimbo — elemento de assinatura visual do produto.
-   Usado como badge de status em vez de "pill" genérica de SaaS.
-   ============================================================ */
-
 .carimbo {
   display: inline-flex;
   align-items: center;
@@ -196,9 +186,6 @@ a:focus-visible {
 .carimbo.terracota { color: var(--terracota); background: var(--terracota-soft); }
 .carimbo.neutro { color: var(--slate); background: #eeece4; border-style: dashed; }
 
-/* ============================================================
-   Componentes de formulário compartilhados
-   ============================================================ */
 
 .campo {
   display: flex;
@@ -308,9 +295,6 @@ a:focus-visible {
   margin-bottom: 16px;
 }
 
-/* ============================================================
-   Tela de autenticação
-   ============================================================ */
 
 .auth-shell {
   min-height: 100vh;
@@ -404,9 +388,6 @@ a:focus-visible {
   .auth-lado-form { padding: 40px 24px; }
 }
 
-/* ============================================================
-   Dashboard de licitações
-   ============================================================ */
 
 .cabecalho-pagina {
   display: flex;
@@ -525,10 +506,6 @@ a:focus-visible {
   margin-bottom: 8px;
   font-size: 18px;
 }
-
-/* ============================================================
-   Página de critérios
-   ============================================================ */
 
 .lista-criterios {
   display: flex;

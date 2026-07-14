@@ -1,22 +1,3 @@
-#!/usr/bin/env python3
-"""
-Coletor de licitações do PNCP — versão SaaS.
-
-Diferença em relação às fases anteriores: esse coletor NÃO aplica os
-filtros de nenhum cliente específico. Ele só baixa os pregões do PNCP e
-guarda TUDO numa base compartilhada (tabela `licitacoes`). Quem filtra
-por critério é a API, na hora que cada cliente consulta.
-
-Isso significa que só precisamos rodar esse coletor UMA VEZ por dia
-(não uma vez por cliente!), e a lista de estados cobertos deve crescer
-conforme você for tendo clientes de outras regiões — edite ESTADOS_COBERTOS
-abaixo conforme for vendendo pra empresas em novos estados.
-
-Como usar:
-    cd backend
-    python3 collector_pncp.py
-"""
-
 import time
 from datetime import date, timedelta
 
@@ -26,24 +7,15 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
 from app import models
 
-# ============================================================
-# CONFIGURAÇÃO
-# ============================================================
-
-# Estados cobertos pela coleta. Comece só com os estados dos seus clientes
-# atuais — adicione mais conforme for vendendo pra novas regiões.
 ESTADOS_COBERTOS = ["MA", "PI", "PA", "TO", "CE"]
 
-MODALIDADES = [6]  # 6 = Pregão Eletrônico
+MODALIDADES = [6]  
 JANELA_DIAS = 60
 BASE_URL = "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta"
 TAMANHO_PAGINA = 50
 PAUSA_ENTRE_REQUISICOES = 1.0
 MAX_TENTATIVAS = 6
 ESPERA_INICIAL_RETRY = 5
-
-# ============================================================
-
 
 def buscar_pagina(session: requests.Session, uf: str, modalidade: int, data_final: str, pagina: int) -> dict:
     params = {
@@ -125,7 +97,6 @@ def coletar_todas(session: requests.Session) -> dict:
 
 
 def sincronizar_com_banco(db: Session, contratacoes: dict):
-    """Insere/atualiza as licitações encontradas e marca como inativas as que sumiram."""
     from datetime import datetime
     agora = datetime.utcnow()
     ids_vistos = set()
@@ -174,7 +145,6 @@ def sincronizar_com_banco(db: Session, contratacoes: dict):
                 ativa=True,
             ))
 
-    # Marca como inativas as que não vieram nesta rodada
     todas_ativas = db.query(models.Licitacao).filter(models.Licitacao.ativa == True).all()  # noqa: E712
     for lic in todas_ativas:
         if lic.numero_controle not in ids_vistos:
@@ -207,4 +177,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

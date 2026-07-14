@@ -1,6 +1,3 @@
-// URL do backend. Em desenvolvimento, o backend roda em localhost:8000
-// (uvicorn app.main:app --reload). Quando for hospedar de verdade, troque
-// isso pela URL pública do backend (ou use uma variável de ambiente do Vite).
 const API_BASE = "http://127.0.0.1:8000";
 
 function pegarToken() {

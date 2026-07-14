@@ -1,14 +1,3 @@
-"""
-API principal — Buscador de Licitações (SaaS)
-
-Pra rodar localmente:
-    uvicorn app.main:app --reload
-
-Depois abra http://127.0.0.1:8000/docs — o FastAPI gera uma interface
-interativa sozinho, onde dá pra testar todos os endpoints sem precisar
-de frontend nenhum ainda.
-"""
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -17,13 +6,10 @@ from sqlalchemy.orm import Session
 from . import models, schemas, auth, scoring
 from .database import engine, get_db, Base
 
-# Cria as tabelas no banco se ainda não existirem
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Buscador de Licitações API", version="1.0")
 
-# CORS: permite que um frontend (rodando em outro endereço/porta) chame essa API.
-# Em produção, troque "*" pela URL real do seu frontend, por segurança.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,10 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ============================================================
-# Autenticação
-# ============================================================
 
 @app.post("/auth/registrar", response_model=schemas.UsuarioSaida, status_code=201)
 def registrar(dados: schemas.UsuarioCriar, db: Session = Depends(get_db)):
@@ -56,8 +38,6 @@ def registrar(dados: schemas.UsuarioCriar, db: Session = Depends(get_db)):
 
 @app.post("/auth/login", response_model=schemas.Token)
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # OAuth2PasswordRequestForm espera campos "username" e "password" —
-    # aqui tratamos "username" como sendo o e-mail.
     usuario = db.query(models.User).filter(models.User.email == form.username).first()
     if not usuario or not auth.verificar_senha(form.password, usuario.senha_hash):
         raise HTTPException(
@@ -72,10 +52,6 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 def meu_perfil(usuario: models.User = Depends(auth.usuario_atual)):
     return usuario
 
-
-# ============================================================
-# Critérios (filtros de cada cliente)
-# ============================================================
 
 @app.get("/criterios", response_model=list[schemas.CriterioSaida])
 def listar_criterios(
@@ -134,21 +110,12 @@ def deletar_criterio(
     db.commit()
 
 
-# ============================================================
-# Licitações (resultado filtrado, por critério)
-# ============================================================
-
 @app.get("/licitacoes", response_model=list[schemas.LicitacaoSaida])
 def listar_licitacoes(
     criterio_id: int | None = None,
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
-    """
-    Retorna as licitações ativas que batem com os critérios do usuário logado.
-    Se `criterio_id` for informado, filtra só por aquele critério específico;
-    senão, aplica TODOS os critérios ativos do usuário e junta os resultados.
-    """
     query_criterios = db.query(models.Criterio).filter(
         models.Criterio.user_id == usuario.id, models.Criterio.ativo == True  # noqa: E712
     )
