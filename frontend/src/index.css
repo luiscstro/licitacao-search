@@ -1,0 +1,597 @@
+:root {
+  /* ---- Paleta ---- */
+  --ink: #16233d;          /* navy profundo — cabeçalhos, sidebar */
+  --ink-soft: #2b3a5a;
+  --paper: #f7f5f0;        /* branco quente, papel de gazeta oficial */
+  --paper-card: #ffffff;
+  --selo-gold: #b8892b;    /* dourado de selo/carimbo — destaque principal */
+  --selo-gold-soft: #f4e9d3;
+  --verde-protocolo: #2f6b4f;   /* aprovado / ativo */
+  --verde-protocolo-soft: #e3efe8;
+  --terracota: #b14b3b;    /* urgência / prazo curto */
+  --terracota-soft: #f5e4e0;
+  --slate: #4b5563;        /* texto secundário */
+  --slate-line: #d9d5c9;   /* linhas divisórias sobre o papel */
+  --linha: #e4e0d4;
+
+  /* ---- Tipografia ---- */
+  --fonte-display: "Source Serif 4", Georgia, serif;
+  --fonte-ui: "IBM Plex Sans", -apple-system, sans-serif;
+  --fonte-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius: 3px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--fonte-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--fonte-display);
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+a { color: inherit; }
+
+button {
+  font-family: var(--fonte-ui);
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--selo-gold);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--selo-gold-soft);
+}
+
+/* ============================================================
+   Layout geral do app (sidebar + conteúdo)
+   ============================================================ */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-brand .marca {
+  font-family: var(--fonte-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.sidebar-brand .subtitulo {
+  font-family: var(--fonte-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa8c4;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-nav button {
+  all: unset;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: #c7cfe0;
+  cursor: pointer;
+}
+
+.sidebar-nav button.ativo {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar-nav button:hover {
+  color: #fff;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 12px;
+  color: #8391ac;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-footer button {
+  all: unset;
+  cursor: pointer;
+  color: #c7cfe0;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.conteudo {
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 1100px;
+}
+
+@media (max-width: 720px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: auto; flex-direction: row; align-items: center; padding: 16px 20px; gap: 20px; }
+  .sidebar-nav { flex-direction: row; }
+  .sidebar-footer { display: none; }
+  .conteudo { padding: 24px; }
+}
+
+/* ============================================================
+   O carimbo — elemento de assinatura visual do produto.
+   Usado como badge de status em vez de "pill" genérica de SaaS.
+   ============================================================ */
+
+.carimbo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  padding: 2px 8px;
+  font-family: var(--fonte-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+  position: relative;
+}
+
+.carimbo::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  opacity: 0.5;
+}
+
+.carimbo.dourado { color: var(--selo-gold); background: var(--selo-gold-soft); }
+.carimbo.verde { color: var(--verde-protocolo); background: var(--verde-protocolo-soft); }
+.carimbo.terracota { color: var(--terracota); background: var(--terracota-soft); }
+.carimbo.neutro { color: var(--slate); background: #eeece4; border-style: dashed; }
+
+/* ============================================================
+   Componentes de formulário compartilhados
+   ============================================================ */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.campo label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.campo input[type="text"],
+.campo input[type="email"],
+.campo input[type="password"],
+.campo input[type="number"],
+.campo select {
+  font-family: var(--fonte-ui);
+  font-size: 14.5px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--slate-line);
+  border-radius: var(--radius);
+  background: var(--paper-card);
+  color: var(--ink);
+}
+
+.campo input:focus,
+.campo select:focus {
+  border-color: var(--ink);
+}
+
+.campo .ajuda {
+  font-size: 12px;
+  color: var(--slate);
+}
+
+.campo-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.campo-checkbox label {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: transform 0.05s ease;
+}
+
+.botao:active { transform: translateY(1px); }
+
+.botao.primario {
+  background: var(--ink);
+  color: var(--paper);
+}
+.botao.primario:hover { background: var(--ink-soft); }
+
+.botao.dourado {
+  background: var(--selo-gold);
+  color: #fff;
+}
+
+.botao.fantasma {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--slate-line);
+}
+.botao.fantasma:hover { border-color: var(--ink); }
+
+.botao.perigo {
+  background: transparent;
+  color: var(--terracota);
+  border: 1.5px solid var(--terracota-soft);
+}
+
+.erro-msg {
+  background: var(--terracota-soft);
+  color: var(--terracota);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+
+.sucesso-msg {
+  background: var(--verde-protocolo-soft);
+  color: var(--verde-protocolo);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+
+/* ============================================================
+   Tela de autenticação
+   ============================================================ */
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.auth-lado-marca {
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-lado-marca::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  bottom: -80px;
+  width: 340px;
+  height: 340px;
+  border: 1.5px dashed rgba(184, 137, 43, 0.35);
+  border-radius: 50%;
+}
+
+.auth-lado-marca .marca {
+  font-family: var(--fonte-display);
+  font-size: 40px;
+  line-height: 1.15;
+  margin-bottom: 18px;
+}
+
+.auth-lado-marca .tagline {
+  font-size: 15px;
+  color: #b7c1d9;
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+.auth-lado-marca .protocolo-exemplo {
+  margin-top: 48px;
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  color: #7c89a8;
+  letter-spacing: 0.06em;
+}
+
+.auth-lado-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  max-width: 440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.auth-lado-form h2 {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+.auth-lado-form .subtitulo {
+  color: var(--slate);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+
+.auth-troca {
+  margin-top: 20px;
+  font-size: 13.5px;
+  color: var(--slate);
+}
+
+.auth-troca button {
+  all: unset;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-lado-marca { display: none; }
+  .auth-lado-form { padding: 40px 24px; }
+}
+
+/* ============================================================
+   Dashboard de licitações
+   ============================================================ */
+
+.cabecalho-pagina {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cabecalho-pagina h1 {
+  font-size: 28px;
+}
+
+.cabecalho-pagina .contagem {
+  font-family: var(--fonte-mono);
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-top: 4px;
+}
+
+.seletor-criterio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seletor-criterio select {
+  font-family: var(--fonte-ui);
+  padding: 8px 12px;
+  border: 1.5px solid var(--slate-line);
+  border-radius: var(--radius);
+  background: var(--paper-card);
+  font-size: 13.5px;
+}
+
+.grade-licitacoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.cartao-licitacao {
+  background: var(--paper-card);
+  border: 1px solid var(--linha);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cartao-licitacao .topo-cartao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cartao-licitacao .pontuacao {
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  color: var(--slate);
+  margin-left: auto;
+}
+
+.cartao-licitacao h3 {
+  font-size: 15.5px;
+  line-height: 1.3;
+}
+
+.cartao-licitacao .objeto {
+  font-size: 13px;
+  color: var(--slate);
+  line-height: 1.5;
+}
+
+.cartao-licitacao .meta-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  font-size: 12px;
+  color: var(--slate);
+  border-top: 1px dashed var(--linha);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.cartao-licitacao .protocolo {
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  color: var(--slate);
+}
+
+.cartao-licitacao .link-edital {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1.5px solid var(--selo-gold);
+  align-self: flex-start;
+  padding-bottom: 1px;
+}
+
+.estado-vazio {
+  border: 1.5px dashed var(--slate-line);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--slate);
+}
+
+.estado-vazio h3 {
+  color: var(--ink);
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+/* ============================================================
+   Página de critérios
+   ============================================================ */
+
+.lista-criterios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.item-criterio {
+  background: var(--paper-card);
+  border: 1px solid var(--linha);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.item-criterio .nome-criterio {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.item-criterio .resumo-criterio {
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-top: 4px;
+}
+
+.item-criterio .acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.card-formulario {
+  background: var(--paper-card);
+  border: 1px solid var(--linha);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  max-width: 560px;
+}
+
+.card-formulario h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.linha-dupla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.acoes-formulario {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.carregando {
+  color: var(--slate);
+  font-size: 14px;
+  padding: 40px 0;
+}
