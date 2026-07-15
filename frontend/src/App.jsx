@@ -3,10 +3,12 @@ import { api } from "./api";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
 import Dashboard from "./pages/Dashboard";
 import Criterios from "./pages/Criterios";
+import Favoritos from "./pages/Favoritos";
+import Equipe from "./pages/Equipe";
 
 export default function App() {
   const [logado, setLogado] = useState(api.estaLogado());
-  const [pagina, setPagina] = useState("dashboard"); // "dashboard" | "criterios"
+  const [pagina, setPagina] = useState("dashboard"); // "dashboard" | "criterios" | "favoritos" | "equipe"
   const [perfil, setPerfil] = useState(null);
 
   useEffect(() => {
@@ -25,6 +27,13 @@ export default function App() {
     setPerfil(null);
   }
 
+  const paginas = {
+    dashboard: <Dashboard />,
+    criterios: <Criterios />,
+    favoritos: <Favoritos />,
+    equipe: <Equipe perfil={perfil} />,
+  };
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -34,29 +43,27 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav">
-          <button
-            className={pagina === "dashboard" ? "ativo" : ""}
-            onClick={() => setPagina("dashboard")}
-          >
+          <button className={pagina === "dashboard" ? "ativo" : ""} onClick={() => setPagina("dashboard")}>
             Licitações
           </button>
-          <button
-            className={pagina === "criterios" ? "ativo" : ""}
-            onClick={() => setPagina("criterios")}
-          >
+          <button className={pagina === "favoritos" ? "ativo" : ""} onClick={() => setPagina("favoritos")}>
+            Favoritos
+          </button>
+          <button className={pagina === "criterios" ? "ativo" : ""} onClick={() => setPagina("criterios")}>
             Meus critérios
+          </button>
+          <button className={pagina === "equipe" ? "ativo" : ""} onClick={() => setPagina("equipe")}>
+            Minha equipe
           </button>
         </nav>
 
         <div className="sidebar-footer">
-          {perfil && <span>{perfil.nome_empresa || perfil.email}</span>}
+          {perfil && <span>{perfil.email}</span>}
           <button onClick={sair}>Sair da conta</button>
         </div>
       </aside>
 
-      <main className="conteudo">
-        {pagina === "dashboard" ? <Dashboard /> : <Criterios />}
-      </main>
+      <main className="conteudo">{paginas[pagina]}</main>
     </div>
   );
 }

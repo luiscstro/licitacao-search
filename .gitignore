@@ -1,0 +1,4 @@
+licitacoes_saas.db
+*.db
+__pycache__/
+*.py[cod]

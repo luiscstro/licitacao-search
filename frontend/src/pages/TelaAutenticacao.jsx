@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { api } from "../api";
 
+// Se o link de convite tiver "?convite=TOKEN" na URL, já pega automaticamente
+function pegarConviteDaUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("convite") || "";
+}
+
 export default function TelaAutenticacao({ aoAutenticar }) {
-  const [modo, setModo] = useState("login"); 
+  const conviteDaUrl = pegarConviteDaUrl();
+  const [modo, setModo] = useState(conviteDaUrl ? "cadastro" : "login"); // "login" | "cadastro"
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("");
+  const [tokenConvite, setTokenConvite] = useState(conviteDaUrl);
+  const [mostrarCampoConvite, setMostrarCampoConvite] = useState(!!conviteDaUrl);
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
@@ -15,7 +24,7 @@ export default function TelaAutenticacao({ aoAutenticar }) {
     setCarregando(true);
     try {
       if (modo === "cadastro") {
-        await api.registrar({ email, senha, nomeEmpresa });
+        await api.registrar({ email, senha, nomeEmpresa, tokenConvite });
       }
       await api.login({ email, senha });
       aoAutenticar();
@@ -46,7 +55,9 @@ export default function TelaAutenticacao({ aoAutenticar }) {
       <div className="auth-lado-form">
         <h2>{modo === "login" ? "Entrar na conta" : "Criar conta"}</h2>
         <p className="subtitulo">
-          {modo === "login"
+          {tokenConvite
+            ? "Você foi convidado para entrar numa equipe. Complete seu cadastro abaixo."
+            : modo === "login"
             ? "Acesse seu painel de licitações filtradas."
             : "Leva menos de um minuto para começar."}
         </p>
@@ -54,9 +65,9 @@ export default function TelaAutenticacao({ aoAutenticar }) {
         {erro && <div className="erro-msg">{erro}</div>}
 
         <form onSubmit={enviar}>
-          {modo === "cadastro" && (
+          {modo === "cadastro" && !tokenConvite && (
             <div className="campo">
-              <label htmlFor="empresa">Nome da empresa (opcional)</label>
+              <label htmlFor="empresa">Nome da empresa</label>
               <input
                 id="empresa"
                 type="text"
@@ -64,6 +75,7 @@ export default function TelaAutenticacao({ aoAutenticar }) {
                 onChange={(e) => setNomeEmpresa(e.target.value)}
                 placeholder="Ex: Apoio & Cia Serviços LTDA"
               />
+              <span className="ajuda">Você vai virar o administrador dessa conta.</span>
             </div>
           )}
 
@@ -92,24 +104,52 @@ export default function TelaAutenticacao({ aoAutenticar }) {
             />
           </div>
 
+          {modo === "cadastro" && !conviteDaUrl && (
+            <div className="campo">
+              {!mostrarCampoConvite ? (
+                <button
+                  type="button"
+                  className="auth-troca"
+                  style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--slate)", textDecoration: "underline" }}
+                  onClick={() => setMostrarCampoConvite(true)}
+                >
+                  Tenho um código de convite de equipe
+                </button>
+              ) : (
+                <>
+                  <label htmlFor="convite">Código de convite (opcional)</label>
+                  <input
+                    id="convite"
+                    type="text"
+                    value={tokenConvite}
+                    onChange={(e) => setTokenConvite(e.target.value)}
+                    placeholder="Cole aqui o código que você recebeu"
+                  />
+                </>
+              )}
+            </div>
+          )}
+
           <button type="submit" className="botao primario" disabled={carregando} style={{ width: "100%" }}>
             {carregando ? "Aguarde..." : modo === "login" ? "Entrar" : "Criar conta"}
           </button>
         </form>
 
-        <div className="auth-troca">
-          {modo === "login" ? (
-            <>
-              Ainda não tem conta?{" "}
-              <button onClick={() => { setModo("cadastro"); setErro(""); }}>Criar agora</button>
-            </>
-          ) : (
-            <>
-              Já tem conta?{" "}
-              <button onClick={() => { setModo("login"); setErro(""); }}>Entrar</button>
-            </>
-          )}
-        </div>
+        {!conviteDaUrl && (
+          <div className="auth-troca">
+            {modo === "login" ? (
+              <>
+                Ainda não tem conta?{" "}
+                <button onClick={() => { setModo("cadastro"); setErro(""); }}>Criar agora</button>
+              </>
+            ) : (
+              <>
+                Já tem conta?{" "}
+                <button onClick={() => { setModo("login"); setErro(""); }}>Entrar</button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
