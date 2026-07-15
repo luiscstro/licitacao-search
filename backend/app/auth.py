@@ -1,3 +1,9 @@
+"""
+Autenticação: hash de senha (nunca guardamos senha em texto puro) e
+tokens JWT (o "crachá" que o cliente usa pra provar que já fez login,
+sem precisar mandar email+senha em toda requisição).
+"""
+
 import os
 from datetime import datetime, timedelta
 from typing import Optional
@@ -11,6 +17,8 @@ from sqlalchemy.orm import Session
 from . import models
 from .database import get_db
 
+# ⚠️ Em produção, defina isso como variável de ambiente — nunca deixe fixo
+# no código quando for publicar de verdade.
 SECRET_KEY = os.getenv("SECRET_KEY", "chave-temporaria-troque-isso-em-producao")
 ALGORITHM = "HS256"
 EXPIRACAO_TOKEN_MINUTOS = 60 * 24 * 7  # 7 dias
@@ -36,7 +44,11 @@ def criar_token(dados: dict) -> str:
 
 
 def usuario_atual(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
-    
+    """
+    Dependency usada nos endpoints protegidos. Lê o token JWT do header
+    Authorization, valida, e retorna o usuário correspondente — ou
+    recusa a requisição com 401 se o token for inválido/expirado.
+    """
     excecao_credenciais = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Não foi possível validar as credenciais",
