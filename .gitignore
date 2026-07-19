@@ -1,4 +1,5 @@
-licitacoes_saas.db
-*.db
 __pycache__/
 *.py[cod]
+*.db
+node_modules/
+.vite/

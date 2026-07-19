@@ -1,21 +1,23 @@
 """
-Motor de filtro/pontuação. Duas formas de uma licitação "passar":
+Motor de filtro/pontuação.
 
-1. Bater com um Criterio salvo pela empresa (aplicar_criterio) — como já
-   funcionava antes.
-2. Bater com uma busca avançada ad-hoc (aplicar_busca_avancada) — texto
-   livre + filtros soltos (UF, valor, órgão, datas), sem precisar de
-   critério salvo. Usada pela busca livre e pela busca "dentro dos
-   resultados já filtrados" (as duas se combinam).
+Duas formas de uma licitação "passar":
+1. Bater com um Criterio salvo pela empresa (aplicar_criterio)
+2. Bater com uma busca avançada ad-hoc (aplicar_filtros_avancados) — texto
+   livre + filtros soltos, sem precisar de critério salvo
+
+Ambas usam o campo `texto_busca` (já normalizado — minúsculo, sem acento
+— calculado uma vez pelo coletor) em vez de reprocessar o texto a cada
+consulta. Isso é o que permite a busca continuar rápida mesmo com uma
+base nacional bem maior.
 """
 
 import unicodedata
-from datetime import datetime
-
-from . import models
 
 
 def normalizar(texto: str) -> str:
+    """Usado pelo coletor pra gerar o texto_busca, e pelas buscas pra
+    normalizar o termo de pesquisa do mesmo jeito."""
     if not texto:
         return ""
     texto = unicodedata.normalize("NFKD", texto)
@@ -23,11 +25,30 @@ def normalizar(texto: str) -> str:
     return texto.lower()
 
 
-def aplicar_criterio(licitacao: models.Licitacao, criterio: models.Criterio) -> tuple[bool, list[str], float]:
-    """Retorna (passou, motivos, score) para uma licitação em relação a um critério salvo."""
-    motivos = []
+def montar_texto_busca(objeto: str, orgao: str, cidade: str, informacao_complementar: str = "") -> str:
+    """Concatena e normaliza os campos relevantes — chamado pelo coletor
+    ao salvar cada licitação, uma vez só, em vez de toda hora numa busca."""
+    return normalizar(f"{objeto or ''} {orgao or ''} {cidade or ''} {informacao_complementar or ''}")
 
-    texto_completo = normalizar((licitacao.objeto or "") + " " + (licitacao.informacao_complementar or ""))
+
+def bate_modalidade(modalidade_licitacao: str, modalidades_permitidas: str) -> bool:
+    """modalidades_permitidas é uma lista separada por vírgula de trechos
+    (ex: 'Pregão,Dispensa'). Vazio = aceita qualquer modalidade. Basta UM
+    dos trechos aparecer no nome da modalidade da licitação."""
+    permitidas = [m.strip() for m in (modalidades_permitidas or "").split(",") if m.strip()]
+    if not permitidas:
+        return True
+    modalidade_norm = normalizar(modalidade_licitacao or "")
+    return any(normalizar(m) in modalidade_norm for m in permitidas)
+
+
+def aplicar_criterio(licitacao, criterio) -> tuple[bool, list[str], float]:
+    """Retorna (passou, motivos, score) para uma licitação em relação a um critério salvo.
+    Assume que `licitacao` já passou pelo pré-filtro SQL (ver main.py) — aqui só
+    confere as regras que não dá pra expressar bem em SQL (modalidade por trecho,
+    combinação de bônus etc.) e monta a lista de motivos."""
+    motivos = []
+    texto_completo = licitacao.texto_busca or ""
 
     if normalizar(criterio.palavra_obrigatoria) not in texto_completo:
         return False, [], 0
@@ -57,10 +78,9 @@ def aplicar_criterio(licitacao: models.Licitacao, criterio: models.Criterio) -> 
             return False, [], 0
         motivos.append("DEMO: sim")
 
-    if criterio.exigir_pregao:
-        modalidade_norm = normalizar(licitacao.modalidade or "")
-        if "pregao" not in modalidade_norm:
-            return False, [], 0
+    if not bate_modalidade(licitacao.modalidade, criterio.modalidades_permitidas):
+        return False, [], 0
+    if criterio.modalidades_permitidas:
         motivos.append(f"Modalidade: {licitacao.modalidade}")
 
     score = 30 + len(bonus_hits) * 15
@@ -72,49 +92,10 @@ def aplicar_criterio(licitacao: models.Licitacao, criterio: models.Criterio) -> 
     return True, motivos, score
 
 
-def aplicar_filtros_avancados(
-    licitacao: models.Licitacao,
-    busca: str | None = None,
-    uf: str | None = None,
-    orgao: str | None = None,
-    valor_min: float | None = None,
-    valor_max: float | None = None,
-    data_de: str | None = None,
-    data_ate: str | None = None,
-) -> bool:
-    """
-    Filtros soltos, aplicados independentemente de qualquer critério salvo.
-    Retorna só True/False — usado tanto pra 'busca livre' (sem critério)
-    quanto pra refinar resultados que já passaram por um critério.
-    """
+def aplicar_filtros_avancados(licitacao, busca: str | None = None) -> bool:
+    """Confere só o texto livre — os outros filtros (uf, valor, datas, órgão)
+    já são aplicados via SQL antes de chegar aqui (ver main.py)."""
     if busca:
-        texto_completo = normalizar(
-            (licitacao.objeto or "") + " " + (licitacao.orgao or "") + " " + (licitacao.cidade or "")
-        )
-        if normalizar(busca) not in texto_completo:
+        if normalizar(busca) not in (licitacao.texto_busca or ""):
             return False
-
-    if uf and (licitacao.uf or "").upper() != uf.upper():
-        return False
-
-    if orgao and normalizar(orgao) not in normalizar(licitacao.orgao or ""):
-        return False
-
-    valor = licitacao.valor_estimado or 0
-    if valor_min is not None and valor < valor_min:
-        return False
-    if valor_max is not None and valor > valor_max:
-        return False
-
-    data_referencia = licitacao.data_encerramento_proposta or licitacao.data_abertura_proposta
-    if (data_de or data_ate) and data_referencia:
-        try:
-            data_lic = datetime.fromisoformat(data_referencia).date()
-            if data_de and data_lic < datetime.fromisoformat(data_de).date():
-                return False
-            if data_ate and data_lic > datetime.fromisoformat(data_ate).date():
-                return False
-        except ValueError:
-            pass
-
     return True

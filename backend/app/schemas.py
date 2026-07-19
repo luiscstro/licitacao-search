@@ -73,7 +73,7 @@ class CriterioBase(BaseModel):
     valor_maximo: float = 999_999_999
     estados_permitidos: str = ""  # ex: "MA,PI,PA,TO,CE" — vazio = todos os estados
     exigir_dedicacao_exclusiva: bool = True
-    exigir_pregao: bool = True
+    modalidades_permitidas: str = ""  # ex: "Pregão,Dispensa" — vazio = qualquer modalidade
 
 
 class CriterioCriar(CriterioBase):
@@ -88,7 +88,7 @@ class CriterioAtualizar(BaseModel):
     valor_maximo: Optional[float] = None
     estados_permitidos: Optional[str] = None
     exigir_dedicacao_exclusiva: Optional[bool] = None
-    exigir_pregao: Optional[bool] = None
+    modalidades_permitidas: Optional[str] = None
     ativo: Optional[bool] = None
 
 

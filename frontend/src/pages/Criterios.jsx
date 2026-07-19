@@ -9,7 +9,7 @@ const CRITERIO_VAZIO = {
   valor_maximo: 20000000,
   estados_permitidos: "",
   exigir_dedicacao_exclusiva: true,
-  exigir_pregao: true,
+  modalidades_permitidas: "",
 };
 
 export default function Criterios() {
@@ -48,7 +48,7 @@ export default function Criterios() {
       valor_maximo: criterio.valor_maximo,
       estados_permitidos: criterio.estados_permitidos,
       exigir_dedicacao_exclusiva: criterio.exigir_dedicacao_exclusiva,
-      exigir_pregao: criterio.exigir_pregao,
+      modalidades_permitidas: criterio.modalidades_permitidas,
     });
     setEditando(criterio);
     setErro("");
@@ -88,7 +88,7 @@ export default function Criterios() {
     if (c.estados_permitidos) partes.push(`estados: ${c.estados_permitidos}`);
     partes.push(`até ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(c.valor_maximo)}`);
     if (c.exigir_dedicacao_exclusiva) partes.push("DEMO");
-    if (c.exigir_pregao) partes.push("só pregão");
+    partes.push(c.modalidades_permitidas ? `modalidade: ${c.modalidades_permitidas}` : "qualquer modalidade");
     return partes.join(" · ");
   }
 
@@ -227,14 +227,19 @@ export default function Criterios() {
               <label htmlFor="demo">Exigir dedicação exclusiva de mão de obra (DEMO)</label>
             </div>
 
-            <div className="campo-checkbox">
+            <div className="campo">
+              <label htmlFor="modalidades">Modalidades aceitas</label>
               <input
-                id="pregao"
-                type="checkbox"
-                checked={form.exigir_pregao}
-                onChange={(e) => setForm({ ...form, exigir_pregao: e.target.checked })}
+                id="modalidades"
+                type="text"
+                value={form.modalidades_permitidas}
+                onChange={(e) => setForm({ ...form, modalidades_permitidas: e.target.value })}
+                placeholder="Ex: Pregão, Dispensa, Credenciamento"
               />
-              <label htmlFor="pregao">Aceitar somente modalidade Pregão</label>
+              <span className="ajuda">
+                Trechos separados por vírgula (ex: "Pregão" aceita Eletrônico e Presencial).
+                Deixe em branco para aceitar qualquer modalidade.
+              </span>
             </div>
 
             <div className="acoes-formulario">

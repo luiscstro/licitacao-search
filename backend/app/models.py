@@ -80,7 +80,10 @@ class Criterio(Base):
     valor_maximo = Column(Float, default=999_999_999)
     estados_permitidos = Column(String, default="")
     exigir_dedicacao_exclusiva = Column(Boolean, default=True)
-    exigir_pregao = Column(Boolean, default=True)
+
+    # Trechos de nome de modalidade que devem aparecer (ex: "Pregão,Dispensa").
+    # Vazio = aceita qualquer modalidade.
+    modalidades_permitidas = Column(String, default="")
 
     ativo = Column(Boolean, default=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
@@ -98,15 +101,20 @@ class Licitacao(Base):
     uf = Column(String, index=True)
     objeto = Column(Text)
     informacao_complementar = Column(Text, default="")
-    valor_estimado = Column(Float, default=0)
-    modalidade = Column(String)
+    valor_estimado = Column(Float, default=0, index=True)
+    modalidade = Column(String, index=True)
     data_abertura_proposta = Column(String, nullable=True)
     data_encerramento_proposta = Column(String, nullable=True)
     link_edital = Column(String, default="")
 
+    # Texto de busca pré-processado (minúsculo, sem acento) — permite que o
+    # filtro de texto rode direto no banco (rápido, mesmo com muitos
+    # registros) em vez de carregar tudo em Python a cada consulta.
+    texto_busca = Column(Text, default="", index=True)
+
     primeira_vez_vista = Column(DateTime, default=datetime.utcnow)
     ultima_vez_vista = Column(DateTime, default=datetime.utcnow)
-    ativa = Column(Boolean, default=True)
+    ativa = Column(Boolean, default=True, index=True)
 
     favoritos = relationship("Favorito", back_populates="licitacao", cascade="all, delete-orphan")
     comentarios = relationship("Comentario", back_populates="licitacao", cascade="all, delete-orphan")
