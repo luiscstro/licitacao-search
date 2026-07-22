@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
 
+const POR_PAGINA = 20;
+
 export default function Dashboard() {
   const [criterios, setCriterios] = useState([]);
   const [criterioSelecionado, setCriterioSelecionado] = useState("todos");
@@ -18,11 +20,15 @@ export default function Dashboard() {
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
 
+  const [pagina, setPagina] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+
   useEffect(() => {
     api.listarCriterios().then(setCriterios).catch(() => {});
   }, []);
 
-  function buscarLicitacoes() {
+  function buscarLicitacoes(paginaAlvo = 1) {
     setCarregando(true);
     setErro("");
     const idFiltro = criterioSelecionado === "todos" ? undefined : criterioSelecionado;
@@ -37,23 +43,27 @@ export default function Dashboard() {
         valorMax: valorMax || undefined,
         dataDe: dataDe || undefined,
         dataAte: dataAte || undefined,
+        pagina: paginaAlvo,
+        porPagina: POR_PAGINA,
       })
       .then((resultado) => {
-        setLicitacoes(resultado);
-        console.log(`Busca retornou ${resultado.length} licitação(ões)`, resultado);
+        setLicitacoes(resultado.itens);
+        setTotal(resultado.total);
+        setTotalPaginas(resultado.total_paginas);
+        setPagina(resultado.pagina);
       })
       .catch((err) => setErro(err.message))
       .finally(() => setCarregando(false));
   }
 
   useEffect(() => {
-    buscarLicitacoes();
+    buscarLicitacoes(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [criterioSelecionado]);
 
   function aoSubmeterBusca(e) {
     e.preventDefault();
-    buscarLicitacoes();
+    buscarLicitacoes(1); // toda nova busca volta pra página 1
   }
 
   function limparFiltros() {
@@ -64,7 +74,13 @@ export default function Dashboard() {
     setValorMax("");
     setDataDe("");
     setDataAte("");
-    setTimeout(buscarLicitacoes, 0);
+    setTimeout(() => buscarLicitacoes(1), 0);
+  }
+
+  function irParaPagina(novaPagina) {
+    if (novaPagina < 1 || novaPagina > totalPaginas) return;
+    buscarLicitacoes(novaPagina);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const temFiltroAvancadoAtivo = uf || orgao || valorMin || valorMax || dataDe || dataAte;
@@ -75,7 +91,9 @@ export default function Dashboard() {
         <div>
           <h1>Licitações</h1>
           <div className="contagem">
-            {carregando ? "carregando..." : `${licitacoes.length} licitação(ões) encontrada(s)`}
+            {carregando
+              ? "carregando..."
+              : `${total} licitação(ões) encontrada(s)${totalPaginas > 1 ? ` · página ${pagina} de ${totalPaginas}` : ""}`}
           </div>
         </div>
 
@@ -182,11 +200,27 @@ export default function Dashboard() {
       {carregando && <div className="carregando">Carregando licitações...</div>}
 
       {!carregando && licitacoes.length > 0 && (
-        <div className="grade-licitacoes">
-          {licitacoes.map((lic) => (
-            <CartaoLicitacao key={lic.numero_controle} lic={lic} />
-          ))}
-        </div>
+        <>
+          <div className="grade-licitacoes">
+            {licitacoes.map((lic) => (
+              <CartaoLicitacao key={lic.numero_controle} lic={lic} />
+            ))}
+          </div>
+
+          {totalPaginas > 1 && (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 28 }}>
+              <button className="botao fantasma" disabled={pagina <= 1} onClick={() => irParaPagina(pagina - 1)}>
+                ← Anterior
+              </button>
+              <span style={{ fontFamily: "var(--fonte-mono)", fontSize: 13, color: "var(--slate)" }}>
+                página {pagina} de {totalPaginas}
+              </span>
+              <button className="botao fantasma" disabled={pagina >= totalPaginas} onClick={() => irParaPagina(pagina + 1)}>
+                Próxima →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

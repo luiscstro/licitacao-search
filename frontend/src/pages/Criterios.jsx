@@ -84,7 +84,8 @@ export default function Criterios() {
   }
 
   function resumoCriterio(c) {
-    const partes = [`palavra: "${c.palavra_obrigatoria}"`];
+    const termos = c.palavra_obrigatoria.split(",").map((t) => t.trim()).filter(Boolean);
+    const partes = [termos.length > 1 ? `termos: ${termos.join(" ou ")}` : `termo: "${termos[0]}"`];
     if (c.estados_permitidos) partes.push(`estados: ${c.estados_permitidos}`);
     partes.push(`até ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(c.valor_maximo)}`);
     if (c.exigir_dedicacao_exclusiva) partes.push("DEMO");
@@ -158,16 +159,19 @@ export default function Criterios() {
             </div>
 
             <div className="campo">
-              <label htmlFor="palavra_obrigatoria">Palavra-chave obrigatória</label>
+              <label htmlFor="palavra_obrigatoria">Termos obrigatórios (pelo menos um)</label>
               <input
                 id="palavra_obrigatoria"
                 type="text"
                 required
                 value={form.palavra_obrigatoria}
                 onChange={(e) => setForm({ ...form, palavra_obrigatoria: e.target.value })}
-                placeholder="Ex: apoio administrativo"
+                placeholder="Ex: apoio administrativo, auxiliar administrativo, assistente administrativo"
               />
-              <span className="ajuda">Toda licitação aprovada precisa conter esse termo.</span>
+              <span className="ajuda">
+                Separe variações por vírgula. A licitação passa se o objeto tiver <strong>pelo menos uma</strong> delas
+                — não precisa ter todas.
+              </span>
             </div>
 
             <div className="campo">

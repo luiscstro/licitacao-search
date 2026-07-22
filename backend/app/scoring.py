@@ -25,9 +25,18 @@ def normalizar(texto: str) -> str:
     return texto.lower()
 
 
+def montar_texto_busca_objeto(objeto: str, informacao_complementar: str = "") -> str:
+    """Só o que descreve do que a licitação trata — usado pra bater com os
+    critérios (palavra obrigatória, bônus, DEMO). Não inclui nome do órgão
+    nem cidade, justamente pra evitar falso positivo (ex: um órgão chamado
+    'Coordenadoria de Apoio Administrativo' comprando material de limpeza
+    de rua não deveria bater com um critério de 'apoio administrativo')."""
+    return normalizar(f"{objeto or ''} {informacao_complementar or ''}")
+
+
 def montar_texto_busca(objeto: str, orgao: str, cidade: str, informacao_complementar: str = "") -> str:
-    """Concatena e normaliza os campos relevantes — chamado pelo coletor
-    ao salvar cada licitação, uma vez só, em vez de toda hora numa busca."""
+    """Versão ampla (objeto + órgão + cidade + info complementar) — usada
+    só na busca LIVRE, onde encontrar por nome de órgão/cidade é útil."""
     return normalizar(f"{objeto or ''} {orgao or ''} {cidade or ''} {informacao_complementar or ''}")
 
 
@@ -48,11 +57,21 @@ def aplicar_criterio(licitacao, criterio) -> tuple[bool, list[str], float]:
     confere as regras que não dá pra expressar bem em SQL (modalidade por trecho,
     combinação de bônus etc.) e monta a lista de motivos."""
     motivos = []
-    texto_completo = licitacao.texto_busca or ""
+    texto_completo = licitacao.texto_busca_objeto or ""
 
-    if normalizar(criterio.palavra_obrigatoria) not in texto_completo:
+    # palavra_obrigatoria agora aceita uma LISTA separada por vírgula de
+    # variações (ex: "apoio administrativo, auxiliar administrativo").
+    # Basta UMA delas aparecer no objeto pra passar — não precisa ser a
+    # frase inteira. Se o campo tiver só uma palavra (formato antigo),
+    # continua funcionando exatamente igual a antes.
+    variacoes_obrigatorias = [v.strip() for v in (criterio.palavra_obrigatoria or "").split(",") if v.strip()]
+    if not variacoes_obrigatorias:
         return False, [], 0
-    motivos.append(f"Contém: '{criterio.palavra_obrigatoria}'")
+
+    variacoes_que_bateram = [v for v in variacoes_obrigatorias if normalizar(v) in texto_completo]
+    if not variacoes_que_bateram:
+        return False, [], 0
+    motivos.append("Contém: " + " / ".join(f"'{v}'" for v in variacoes_que_bateram))
 
     bonus_lista = [p.strip() for p in (criterio.palavras_bonus or "").split(",") if p.strip()]
     bonus_hits = [p for p in bonus_lista if normalizar(p) in texto_completo]
@@ -83,7 +102,7 @@ def aplicar_criterio(licitacao, criterio) -> tuple[bool, list[str], float]:
     if criterio.modalidades_permitidas:
         motivos.append(f"Modalidade: {licitacao.modalidade}")
 
-    score = 30 + len(bonus_hits) * 15
+    score = 30 + (len(variacoes_que_bateram) - 1) * 10 + len(bonus_hits) * 15
     if valor > 0:
         score += min(valor / 1_000_000, 20)
     if estados_lista and (licitacao.uf or "").upper() == estados_lista[0]:

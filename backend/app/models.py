@@ -107,9 +107,17 @@ class Licitacao(Base):
     data_encerramento_proposta = Column(String, nullable=True)
     link_edital = Column(String, default="")
 
-    # Texto de busca pré-processado (minúsculo, sem acento) — permite que o
-    # filtro de texto rode direto no banco (rápido, mesmo com muitos
-    # registros) em vez de carregar tudo em Python a cada consulta.
+    # Texto de busca pré-processado (minúsculo, sem acento), calculado uma
+    # vez pelo coletor em vez de reprocessar a cada consulta:
+    # - texto_busca_objeto: SÓ objeto + informação complementar. É o que
+    #   define "do que essa licitação trata" — usado pros critérios
+    #   (palavra obrigatória, bônus, DEMO), pra evitar que o nome do órgão
+    #   comprador (ex: "Coordenadoria de Apoio Administrativo") faça uma
+    #   licitação bater por engano.
+    # - texto_busca: objeto + órgão + cidade + informação complementar.
+    #   Mais abrangente — usado só na busca LIVRE, onde faz sentido
+    #   encontrar por nome de cidade ou órgão também.
+    texto_busca_objeto = Column(Text, default="", index=True)
     texto_busca = Column(Text, default="", index=True)
 
     primeira_vez_vista = Column(DateTime, default=datetime.utcnow)

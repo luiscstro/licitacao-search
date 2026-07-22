@@ -39,9 +39,7 @@ export default function TelaAutenticacao({ aoAutenticar }) {
     <div className="auth-shell">
       <div className="auth-lado-marca">
         <div className="marca">
-          Achador de
-          <br />
-          Licitações
+          LicitTraker
         </div>
         <p className="tagline">
           Todo dia, uma leitura das novas licitações do PNCP — só as que

@@ -117,6 +117,16 @@ class LicitacaoSaida(BaseModel):
     favoritada: bool = False
 
 
+# ---------- Licitações paginadas ----------
+
+class LicitacoesPaginadas(BaseModel):
+    total: int
+    pagina: int
+    por_pagina: int
+    total_paginas: int
+    itens: list[LicitacaoSaida]
+
+
 # ---------- Favoritos ----------
 
 class FavoritoCriar(BaseModel):

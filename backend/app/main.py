@@ -182,7 +182,7 @@ def deletar_criterio(
 # Licitações — filtro por critério + busca avançada (as duas combinam)
 # ============================================================
 
-@app.get("/licitacoes", response_model=list[schemas.LicitacaoSaida])
+@app.get("/licitacoes", response_model=schemas.LicitacoesPaginadas)
 def listar_licitacoes(
     criterio_id: int | None = None,
     busca: str | None = None,
@@ -192,21 +192,53 @@ def listar_licitacoes(
     valor_max: float | None = None,
     data_de: str | None = None,
     data_ate: str | None = None,
+    pagina: int = 1,
+    por_pagina: int = 30,
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
     """
     Três formas de usar, que se combinam:
     - Só `criterio_id` (ou nenhum parâmetro): aplica os critérios salvos da
-      empresa, como antes.
+      empresa ("Licitações pra você").
     - Só `busca`/filtros soltos, sem critério: busca livre em TODAS as
-      licitações ativas, sem precisar de critério salvo.
+      licitações ativas — Brasil inteiro, qualquer modalidade — sem
+      precisar de critério salvo.
     - `criterio_id` + `busca`/filtros: primeiro aplica o critério, depois
       refina o resultado com os filtros soltos.
+
+    O filtro pesado (texto, valor, estado, órgão) roda direto no banco
+    (SQL) antes de qualquer processamento em Python — isso é o que mantém
+    a busca rápida mesmo com uma base nacional bem maior.
+
+    Resultado vem paginado (`pagina`, começando em 1; `por_pagina`,
+    padrão 30) — importante com uma base grande, pra não devolver
+    milhares de itens numa resposta só.
     """
+    pagina = max(1, pagina)
+    por_pagina = max(1, min(por_pagina, 200))  # trava um teto, pra ninguém pedir 100000 de uma vez
+
     tem_filtro_avancado = any([busca, uf, orgao, valor_min is not None, valor_max is not None, data_de, data_ate])
 
-    licitacoes_ativas = db.query(models.Licitacao).filter(models.Licitacao.ativa == True).all()  # noqa: E712
+    # -------- Pré-filtro no banco (rápido, mesmo com muitos registros) --------
+    query = db.query(models.Licitacao).filter(models.Licitacao.ativa == True)  # noqa: E712
+
+    if busca:
+        query = query.filter(models.Licitacao.texto_busca.contains(scoring.normalizar(busca)))
+    if uf:
+        query = query.filter(models.Licitacao.uf == uf.upper())
+    if orgao:
+        query = query.filter(models.Licitacao.orgao.ilike(f"%{orgao}%"))
+    if valor_min is not None:
+        query = query.filter(models.Licitacao.valor_estimado >= valor_min)
+    if valor_max is not None:
+        query = query.filter(models.Licitacao.valor_estimado <= valor_max)
+    if data_de:
+        query = query.filter(models.Licitacao.data_encerramento_proposta >= data_de)
+    if data_ate:
+        query = query.filter(models.Licitacao.data_encerramento_proposta <= data_ate + "T23:59:59")
+
+    candidatas = query.all()
 
     favoritos_ids = {
         f.numero_controle for f in
@@ -216,7 +248,7 @@ def listar_licitacoes(
     resultados = {}
 
     if criterio_id is not None or (criterio_id is None and not tem_filtro_avancado):
-        # Modo "critérios salvos" (comportamento original)
+        # Modo "critérios salvos" ("Licitações pra você")
         query_criterios = db.query(models.Criterio).filter(
             models.Criterio.empresa_id == usuario.empresa_id, models.Criterio.ativo == True  # noqa: E712
         )
@@ -224,32 +256,42 @@ def listar_licitacoes(
             query_criterios = query_criterios.filter(models.Criterio.id == criterio_id)
         criterios = query_criterios.all()
 
-        for licitacao in licitacoes_ativas:
+        for licitacao in candidatas:
             melhor_score, melhores_motivos, passou_algum = 0, [], False
             for criterio in criterios:
                 passou, motivos, score = scoring.aplicar_criterio(licitacao, criterio)
                 if passou and score > melhor_score:
                     passou_algum, melhor_score, melhores_motivos = True, score, motivos
 
-            if passou_algum and (not tem_filtro_avancado or scoring.aplicar_filtros_avancados(
-                licitacao, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
-            )):
+            if passou_algum:
                 saida = schemas.LicitacaoSaida.model_validate(licitacao)
                 saida.score = melhor_score
                 saida.motivos = melhores_motivos
                 saida.favoritada = licitacao.numero_controle in favoritos_ids
                 resultados[licitacao.numero_controle] = saida
     else:
-        # Modo "busca livre" — sem critério, só os filtros soltos
-        for licitacao in licitacoes_ativas:
-            if scoring.aplicar_filtros_avancados(licitacao, busca, uf, orgao, valor_min, valor_max, data_de, data_ate):
-                saida = schemas.LicitacaoSaida.model_validate(licitacao)
-                saida.score = 0
-                saida.motivos = ["Busca livre"]
-                saida.favoritada = licitacao.numero_controle in favoritos_ids
-                resultados[licitacao.numero_controle] = saida
+        # Modo "busca livre" — sem critério, Brasil inteiro, qualquer modalidade
+        for licitacao in candidatas:
+            saida = schemas.LicitacaoSaida.model_validate(licitacao)
+            saida.score = 0
+            saida.motivos = ["Busca livre"]
+            saida.favoritada = licitacao.numero_controle in favoritos_ids
+            resultados[licitacao.numero_controle] = saida
 
-    return sorted(resultados.values(), key=lambda r: r.score, reverse=True)
+    todos_ordenados = sorted(resultados.values(), key=lambda r: r.score, reverse=True)
+
+    total = len(todos_ordenados)
+    total_paginas = max(1, (total + por_pagina - 1) // por_pagina)
+    inicio = (pagina - 1) * por_pagina
+    pagina_de_itens = todos_ordenados[inicio:inicio + por_pagina]
+
+    return schemas.LicitacoesPaginadas(
+        total=total,
+        pagina=pagina,
+        por_pagina=por_pagina,
+        total_paginas=total_paginas,
+        itens=pagina_de_itens,
+    )
 
 
 # ============================================================

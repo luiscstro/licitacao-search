@@ -38,7 +38,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="marca">Achador</div>
+          <div className="marca">LicitTraker</div>
           <div className="subtitulo">Licitações · PNCP</div>
         </div>
 

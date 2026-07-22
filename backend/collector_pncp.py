@@ -19,6 +19,7 @@ Como usar:
     python3 collector_pncp.py
 """
 
+import sys
 import time
 from datetime import date, timedelta
 
@@ -27,7 +28,21 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, engine, Base
 from app import models
-from app.scoring import montar_texto_busca
+from app.scoring import montar_texto_busca, montar_texto_busca_objeto
+
+# No Windows, quando a saída é redirecionada pra um arquivo (ex: "> log.txt"),
+# duas coisas dão problema:
+# 1. O Python às vezes tenta usar uma codificação antiga (cp1252) que não
+#    sabe escrever emojis (⚠, ✗, etc) — e quebra o script no meio.
+# 2. Por padrão, a saída redirecionada fica "em buffer" (só escreve no
+#    arquivo de vez em quando, em blocos) — então o arquivo de log fica
+#    vazio por um tempo bem longo mesmo com o script rodando normalmente.
+# As duas linhas abaixo resolvem os dois problemas: força UTF-8 (com
+# "errors=replace" pra NUNCA travar por causa de um caractere raro) e
+# força escrever cada linha imediatamente (line_buffering=True).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
 # ============================================================
 # CONFIGURAÇÃO
@@ -40,17 +55,18 @@ MODALIDADES = {
     # 1: "Leilão - Eletrônico",
     # 2: "Diálogo Competitivo",
     # 3: "Concurso",
-    4: "Concorrência - Eletrônica",
-    5: "Concorrência - Presencial",
+    # 4: "Concorrência - Eletrônica",   # desativado por ora: volume alto, menos relevante pra serviços
+    # 5: "Concorrência - Presencial",   # desativado por ora: idem
     6: "Pregão - Eletrônico",
     7: "Pregão - Presencial",
     8: "Dispensa de Licitação",
-    9: "Inexigibilidade",
     10: "Manifestação de Interesse",
-    11: "Pré-qualificação",
-    12: "Credenciamento",
+    12: "Credenciamento",              # geralmente aparece como "Chamamento Público" na prática
+    # 9: "Inexigibilidade",            # desativado por ora: raro pro seu tipo de negócio
+    # 11: "Pré-qualificação",          # desativado por ora: raro
     # 13: "Leilão - Presencial",
 }
+# Pra reativar alguma, é só remover o "#" da linha correspondente e rodar de novo.
 
 # Se True, busca o Brasil inteiro numa passada só por modalidade (mais
 # rápido — menos requisições). Se False, faz um loop por UF (mais lento,
@@ -175,11 +191,12 @@ def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_m
     cai automaticamente para buscar estado por estado, sem travar o resto
     da coleta."""
     rotulo = f"modalidade={nome_modalidade} ({codigo_modalidade})"
+    encontradas_brasil = {}
+    falhou_no_meio = False
 
     if BUSCAR_BRASIL_INTEIRO:
         print(f"Buscando {rotulo}, Brasil inteiro...")
         pagina = 1
-        encontradas = {}
         try:
             while True:
                 data = buscar_pagina(session, codigo_modalidade, data_final, pagina, None)
@@ -189,23 +206,44 @@ def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_m
                 if not registros:
                     break
                 for c in registros:
-                    encontradas[c["numeroControlePNCP"]] = c
+                    encontradas_brasil[c["numeroControlePNCP"]] = c
                 total_paginas = data.get("totalPaginas", 1) if isinstance(data, dict) else 1
                 print(f"  página {pagina}/{total_paginas} — {len(registros)} itens")
                 if pagina >= total_paginas:
                     break
                 pagina += 1
                 time.sleep(PAUSA_ENTRE_REQUISICOES)
-            return encontradas
+            return encontradas_brasil
         except ErroRequisicaoInvalida:
             print(f"  ↳ Brasil inteiro não é aceito pra {rotulo}. Buscando estado por estado em vez disso...")
         except RuntimeError as erro:
-            print(f"  ✗ Desistindo de {rotulo} (Brasil inteiro): {erro}")
-            return encontradas
+            print(f"  ⚠ {rotulo} falhou no meio da coleta nacional (parou na página {pagina}, "
+                  f"{len(encontradas_brasil)} itens coletados até aqui): {erro}")
+            print(f"  ↳ Isso deixaria dados incompletos — caindo pra busca estado por estado "
+                  f"pra completar o que faltou, em vez de aceitar um resultado parcial.")
+            falhou_no_meio = True
 
     # Fallback: estado por estado (ou comportamento padrão se
     # BUSCAR_BRASIL_INTEIRO = False)
     estados = TODOS_OS_ESTADOS if BUSCAR_BRASIL_INTEIRO else ESTADOS_COBERTOS
+
+    if falhou_no_meio:
+        # Já sabemos que não é erro de parâmetro (chegou a coletar páginas
+        # de verdade) — é instabilidade/rate limit. Não faz sentido testar
+        # "1 estado primeiro"; já vamos direto pra todos, aproveitando o
+        # que já tinha sido coletado antes de falhar.
+        encontradas = dict(encontradas_brasil)
+        for uf in estados:
+            print(f"Buscando {rotulo}, UF={uf}...")
+            try:
+                parciais = _coletar_por_uf(session, codigo_modalidade, data_final, uf)
+            except ErroRequisicaoInvalida as erro:
+                print(f"  ✗ UF={uf} rejeitado: {erro}. Pulando pra o próximo estado.")
+                parciais = {}
+            encontradas.update(parciais)
+            time.sleep(PAUSA_ENTRE_REQUISICOES)
+        print(f"  -> Recuperação completa: {len(encontradas)} itens ao todo (incluindo os {len(encontradas_brasil)} de antes da falha)")
+        return encontradas
 
     # Teste rápido: se o primeiro estado também for rejeitado com o mesmo
     # tipo de erro, o problema provavelmente não é sobre UF/Brasil-inteiro
@@ -231,27 +269,15 @@ def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_m
     return encontradas
 
 
-def coletar_todas(session: requests.Session) -> dict:
-    data_final = (date.today() + timedelta(days=JANELA_DIAS)).strftime("%Y%m%d")
-    todas = {}
-    for codigo, nome in MODALIDADES.items():
-        try:
-            parciais = coletar_modalidade(session, codigo, nome, data_final)
-        except Exception as erro:  # não deixa uma modalidade travar as outras
-            print(f"  ✗ Erro inesperado em modalidade={nome}: {erro}")
-            parciais = {}
-        todas.update(parciais)
-        print(f"  -> {nome}: {len(parciais)} itens (acumulado: {len(todas)})\n")
-    return todas
-
-
-def sincronizar_com_banco(db: Session, contratacoes: dict):
+def salvar_licitacoes(db: Session, contratacoes: dict):
+    """Grava/atualiza um lote de licitações no banco e já comita — chamado
+    UMA VEZ POR MODALIDADE, assim que ela termina de ser coletada. Isso é
+    o que garante que, mesmo se o script cair no meio (erro inesperado,
+    falta de luz, etc), o que já foi coletado com sucesso não se perde."""
     from datetime import datetime
     agora = datetime.utcnow()
-    ids_vistos = set()
 
     for numero_controle, c in contratacoes.items():
-        ids_vistos.add(numero_controle)
         orgao_info = c.get("orgaoEntidade") or {}
         unidade = c.get("unidadeOrgao") or {}
         cnpj = orgao_info.get("cnpj")
@@ -264,6 +290,7 @@ def sincronizar_com_banco(db: Session, contratacoes: dict):
         cidade = unidade.get("municipioNome", "—")
         info_complementar = c.get("informacaoComplementar", "") or ""
         texto_busca = montar_texto_busca(objeto, orgao_nome, cidade, info_complementar)
+        texto_busca_objeto = montar_texto_busca_objeto(objeto, info_complementar)
 
         existente = db.query(models.Licitacao).filter(
             models.Licitacao.numero_controle == numero_controle
@@ -281,6 +308,7 @@ def sincronizar_com_banco(db: Session, contratacoes: dict):
             existente.data_encerramento_proposta = c.get("dataEncerramentoProposta")
             existente.link_edital = link
             existente.texto_busca = texto_busca
+            existente.texto_busca_objeto = texto_busca_objeto
             existente.ultima_vez_vista = agora
             existente.ativa = True
         else:
@@ -297,17 +325,28 @@ def sincronizar_com_banco(db: Session, contratacoes: dict):
                 data_encerramento_proposta=c.get("dataEncerramentoProposta"),
                 link_edital=link,
                 texto_busca=texto_busca,
+                texto_busca_objeto=texto_busca_objeto,
                 primeira_vez_vista=agora,
                 ultima_vez_vista=agora,
                 ativa=True,
             ))
 
-    todas_ativas = db.query(models.Licitacao).filter(models.Licitacao.ativa == True).all()  # noqa: E712
-    for lic in todas_ativas:
-        if lic.numero_controle not in ids_vistos:
-            lic.ativa = False
-
     db.commit()
+
+
+def marcar_inativas(db: Session, todos_ids_vistos: set):
+    """Chamado UMA VEZ, depois que TODAS as modalidades foram coletadas e
+    salvas. Marca como inativa qualquer licitação que estava ativa no banco
+    mas não apareceu em nenhuma modalidade coletada dessa vez (prazo
+    encerrado, retirada, etc)."""
+    todas_ativas = db.query(models.Licitacao).filter(models.Licitacao.ativa == True).all()  # noqa: E712
+    marcadas = 0
+    for lic in todas_ativas:
+        if lic.numero_controle not in todos_ids_vistos:
+            lic.ativa = False
+            marcadas += 1
+    db.commit()
+    return marcadas
 
 
 def main():
@@ -320,18 +359,34 @@ def main():
                        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     })
 
-    inicio = time.time()
-    todas = coletar_todas(session)
-    duracao_min = (time.time() - inicio) / 60
-    print(f"\nTotal de contratações únicas encontradas: {len(todas)} (em {duracao_min:.1f} minutos)")
-
+    data_final = (date.today() + timedelta(days=JANELA_DIAS)).strftime("%Y%m%d")
     db = SessionLocal()
+    todos_ids_vistos = set()
+    inicio = time.time()
+
     try:
-        sincronizar_com_banco(db, todas)
+        for codigo, nome in MODALIDADES.items():
+            try:
+                parciais = coletar_modalidade(session, codigo, nome, data_final)
+            except Exception as erro:  # não deixa uma modalidade travar as outras
+                print(f"  ✗ Erro inesperado em modalidade={nome}: {erro}")
+                parciais = {}
+
+            # Salva JÁ, assim que essa modalidade termina — não espera as
+            # outras. Se o script cair depois disso, o que já foi salvo
+            # continua salvo.
+            salvar_licitacoes(db, parciais)
+            todos_ids_vistos.update(parciais.keys())
+            print(f"  -> {nome}: {len(parciais)} itens salvos (acumulado: {len(todos_ids_vistos)})\n")
+
+        duracao_min = (time.time() - inicio) / 60
+        print(f"\nTotal de contratações únicas coletadas: {len(todos_ids_vistos)} (em {duracao_min:.1f} minutos)")
+
+        marcadas = marcar_inativas(db, todos_ids_vistos)
+        print(f"Licitações marcadas como inativas (sumiram desde a última coleta): {marcadas}")
+        print("Base compartilhada de licitações atualizada com sucesso.")
     finally:
         db.close()
-
-    print("Base compartilhada de licitações atualizada com sucesso.")
 
 
 if __name__ == "__main__":

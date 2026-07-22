@@ -146,9 +146,9 @@ export const api = {
     return requisicao(`/criterios/${id}`, { method: "DELETE" });
   },
 
-  // ---------- Licitações (busca por critério + busca avançada) ----------
+  // ---------- Licitações (busca por critério + busca avançada, paginado) ----------
   async listarLicitacoes(filtros = {}) {
-    // filtros pode ter: criterioId, busca, uf, orgao, valorMin, valorMax, dataDe, dataAte
+    // filtros pode ter: criterioId, busca, uf, orgao, valorMin, valorMax, dataDe, dataAte, pagina, porPagina
     const query = montarQuery({
       criterio_id: filtros.criterioId,
       busca: filtros.busca,
@@ -158,7 +158,10 @@ export const api = {
       valor_max: filtros.valorMax,
       data_de: filtros.dataDe,
       data_ate: filtros.dataAte,
+      pagina: filtros.pagina || 1,
+      por_pagina: filtros.porPagina || 30,
     });
+    // Retorna { total, pagina, por_pagina, total_paginas, itens }
     return requisicao(`/licitacoes${query}`);
   },
 
