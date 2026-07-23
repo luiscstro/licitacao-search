@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X, Send } from "lucide-react";
 import { api } from "../api";
 
 export default function PainelComentarios({ numeroControle, aoFechar }) {
@@ -19,6 +20,7 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
 
   useEffect(() => {
     carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numeroControle]);
 
   async function enviar(e) {
@@ -38,22 +40,17 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
   }
 
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(22,35,61,0.45)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20,
-      }}
-      onClick={aoFechar}
-    >
-      <div
-        className="card-formulario"
-        style={{ maxWidth: 480, width: "100%", maxHeight: "80vh", display: "flex", flexDirection: "column" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+    <div className="painel-overlay" onClick={aoFechar}>
+      <div className="painel-modal card-formulario" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <h2 style={{ marginBottom: 0 }}>Comentários da equipe</h2>
-          <button className="botao fantasma" onClick={aoFechar} style={{ padding: "6px 12px" }}>
-            Fechar
+          <button
+            className="botao fantasma"
+            onClick={aoFechar}
+            style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }}
+            aria-label="Fechar"
+          >
+            <X size={15} strokeWidth={2.2} />
           </button>
         </div>
 
@@ -69,8 +66,8 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
           {comentarios.map((c) => (
             <div key={c.id} style={{ borderBottom: "1px dashed var(--linha)", paddingBottom: 8 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>{c.autor_email}</div>
-              <div style={{ fontSize: 13.5, color: "var(--slate)", marginTop: 2 }}>{c.texto}</div>
-              <div style={{ fontSize: 11, color: "var(--slate)", marginTop: 4, fontFamily: "var(--fonte-mono)" }}>
+              <div style={{ fontSize: 13.5, color: "var(--slate)", marginTop: 2, lineHeight: 1.5 }}>{c.texto}</div>
+              <div style={{ fontSize: 11, color: "var(--slate-dim)", marginTop: 4, fontFamily: "var(--fonte-mono)" }}>
                 {new Date(c.criado_em).toLocaleString("pt-BR")}
               </div>
             </div>
@@ -89,7 +86,7 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
             }}
           />
           <button type="submit" className="botao primario" disabled={enviando}>
-            {enviando ? "..." : "Enviar"}
+            {enviando ? "..." : <><Send size={14} strokeWidth={2.2} /> Enviar</>}
           </button>
         </form>
       </div>

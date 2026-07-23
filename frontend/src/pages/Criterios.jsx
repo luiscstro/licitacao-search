@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plus, ListChecks, Pencil, Trash2 } from "lucide-react";
 import { api } from "../api";
 
 const CRITERIO_VAZIO = {
@@ -97,12 +98,13 @@ export default function Criterios() {
     <div>
       <div className="cabecalho-pagina">
         <div>
+          <span className="eyebrow">Configuração</span>
           <h1>Meus critérios</h1>
           <div className="contagem">defina o que conta como uma boa licitação para você</div>
         </div>
         {!editando && (
           <button className="botao dourado" onClick={abrirNovo}>
-            + Novo critério
+            <Plus size={16} strokeWidth={2.3} /> Novo critério
           </button>
         )}
       </div>
@@ -115,6 +117,7 @@ export default function Criterios() {
 
           {!carregando && criterios.length === 0 && (
             <div className="estado-vazio">
+              <ListChecks strokeWidth={1.5} />
               <h3>Nenhum critério ainda</h3>
               <p>Crie o primeiro para começar a ver licitações no seu painel.</p>
             </div>
@@ -129,10 +132,10 @@ export default function Criterios() {
                 </div>
                 <div className="acoes">
                   <button className="botao fantasma" onClick={() => abrirEdicao(c)}>
-                    Editar
+                    <Pencil size={13} strokeWidth={2.1} /> Editar
                   </button>
                   <button className="botao perigo" onClick={() => apagar(c.id)}>
-                    Apagar
+                    <Trash2 size={13} strokeWidth={2.1} /> Apagar
                   </button>
                 </div>
               </div>

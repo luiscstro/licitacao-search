@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Star } from "lucide-react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
 
@@ -24,6 +25,7 @@ export default function Favoritos() {
     <div>
       <div className="cabecalho-pagina">
         <div>
+          <span className="eyebrow">Guardados</span>
           <h1>Favoritos</h1>
           <div className="contagem">
             {carregando ? "carregando..." : `${favoritos.length} licitação(ões) favoritada(s)`}
@@ -35,6 +37,7 @@ export default function Favoritos() {
 
       {!carregando && favoritos.length === 0 && (
         <div className="estado-vazio">
+          <Star strokeWidth={1.5} />
           <h3>Nenhum favorito ainda</h3>
           <p>Clique na estrela ☆ de qualquer licitação na tela "Licitações" para guardá-la aqui.</p>
         </div>

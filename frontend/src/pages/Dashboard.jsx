@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
 
@@ -89,6 +90,7 @@ export default function Dashboard() {
     <div>
       <div className="cabecalho-pagina">
         <div>
+          <span className="eyebrow">Painel</span>
           <h1>Licitações</h1>
           <div className="contagem">
             {carregando
@@ -120,20 +122,28 @@ export default function Dashboard() {
 
       <form onSubmit={aoSubmeterBusca} style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por palavra (funciona com ou sem critério selecionado)..."
-            style={{
-              flex: 1, fontFamily: "var(--fonte-ui)", fontSize: 14, padding: "10px 12px",
-              border: "1.5px solid var(--slate-line)", borderRadius: "var(--radius)",
-            }}
-          />
+          <div style={{ position: "relative", flex: 1 }}>
+            <Search
+              size={16}
+              strokeWidth={2}
+              style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--slate-dim)" }}
+            />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por palavra (funciona com ou sem critério selecionado)..."
+              style={{
+                width: "100%", fontFamily: "var(--fonte-ui)", fontSize: 14, padding: "10px 12px 10px 36px",
+                border: "1.5px solid var(--slate-line)", borderRadius: "var(--radius)",
+              }}
+            />
+          </div>
           <button type="submit" className="botao primario" disabled={carregando}>
             {carregando ? "Buscando..." : "Buscar"}
           </button>
           <button type="button" className="botao fantasma" onClick={() => setFiltrosAbertos(!filtrosAbertos)}>
+            <SlidersHorizontal size={15} strokeWidth={2} />
             {filtrosAbertos ? "Ocultar filtros" : "Filtros avançados"}
           </button>
         </div>
@@ -182,6 +192,7 @@ export default function Dashboard() {
 
       {criterios.length === 0 && !busca && !temFiltroAvancadoAtivo && !carregando && licitacoes.length === 0 && (
         <div className="estado-vazio">
+          <Search strokeWidth={1.5} />
           <h3>Nenhum critério configurado ainda</h3>
           <p>
             Vá até "Meus critérios" no menu e configure o que você procura — ou use a busca
@@ -192,6 +203,7 @@ export default function Dashboard() {
 
       {!carregando && licitacoes.length === 0 && (criterios.length > 0 || busca || temFiltroAvancadoAtivo) && (
         <div className="estado-vazio">
+          <Search strokeWidth={1.5} />
           <h3>Nenhuma licitação encontrada</h3>
           <p>Tente ajustar a busca, os filtros, ou o critério selecionado.</p>
         </div>
@@ -210,13 +222,13 @@ export default function Dashboard() {
           {totalPaginas > 1 && (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 28 }}>
               <button className="botao fantasma" disabled={pagina <= 1} onClick={() => irParaPagina(pagina - 1)}>
-                ← Anterior
+                <ChevronLeft size={15} strokeWidth={2.2} /> Anterior
               </button>
               <span style={{ fontFamily: "var(--fonte-mono)", fontSize: 13, color: "var(--slate)" }}>
                 página {pagina} de {totalPaginas}
               </span>
               <button className="botao fantasma" disabled={pagina >= totalPaginas} onClick={() => irParaPagina(pagina + 1)}>
-                Próxima →
+                Próxima <ChevronRight size={15} strokeWidth={2.2} />
               </button>
             </div>
           )}

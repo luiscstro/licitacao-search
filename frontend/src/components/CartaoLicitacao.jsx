@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Star, MapPin, Wallet, Clock, MessageCircle, ArrowUpRight } from "lucide-react";
 import Carimbo from "./Carimbo";
 import PainelComentarios from "./PainelComentarios";
 import { api } from "../api";
@@ -56,15 +57,12 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
         {lic.uf && <Carimbo cor="neutro">{lic.uf}</Carimbo>}
         {urgente(lic.data_encerramento_proposta) && <Carimbo cor="terracota">prazo curto</Carimbo>}
         <button
+          className={`botao-favorito ${favoritada ? "ativo" : ""}`}
           onClick={alternarFavorito}
           disabled={alternandoFavorito}
           title={favoritada ? "Remover dos favoritos" : "Favoritar"}
-          style={{
-            all: "unset", cursor: "pointer", marginLeft: "auto", fontSize: 18,
-            color: favoritada ? "var(--selo-gold)" : "var(--slate-line)", lineHeight: 1,
-          }}
         >
-          {favoritada ? "★" : "☆"}
+          <Star fill={favoritada ? "currentColor" : "none"} strokeWidth={1.8} />
         </button>
       </div>
 
@@ -75,24 +73,21 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
       </p>
 
       <div className="meta-linha">
-        <span>📍 {lic.cidade}/{lic.uf}</span>
-        <span>💰 {formatarValor(lic.valor_estimado)}</span>
-        <span>⏰ Proposta encerra: {diasAte(lic.data_encerramento_proposta)}</span>
+        <span><MapPin strokeWidth={2} /> {lic.cidade}/{lic.uf}</span>
+        <span><Wallet strokeWidth={2} /> {formatarValor(lic.valor_estimado)}</span>
+        <span><Clock strokeWidth={2} /> {diasAte(lic.data_encerramento_proposta)}</span>
       </div>
 
       <div className="protocolo">{lic.numero_controle}</div>
 
-      <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 2 }}>
+      <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 2 }}>
         {lic.link_edital && (
           <a href={lic.link_edital} target="_blank" rel="noreferrer" className="link-edital">
-            Ver edital no PNCP →
+            Ver edital no PNCP <ArrowUpRight size={13} strokeWidth={2.2} />
           </a>
         )}
-        <button
-          onClick={() => setComentariosAbertos(true)}
-          style={{ all: "unset", cursor: "pointer", fontSize: 12.5, color: "var(--slate)", textDecoration: "underline" }}
-        >
-          💬 Comentários
+        <button className="botao-comentarios" onClick={() => setComentariosAbertos(true)}>
+          <MessageCircle strokeWidth={2} /> Comentários
         </button>
       </div>
 

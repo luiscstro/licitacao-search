@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UserPlus, Copy, Check } from "lucide-react";
 import { api } from "../api";
 import Carimbo from "../components/Carimbo";
 
@@ -10,6 +11,7 @@ export default function Equipe({ perfil }) {
   const [linkGerado, setLinkGerado] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   const souOwner = perfil?.papel === "owner";
 
@@ -47,12 +49,15 @@ export default function Equipe({ perfil }) {
 
   function copiarLink() {
     navigator.clipboard.writeText(linkGerado);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
   }
 
   return (
     <div>
       <div className="cabecalho-pagina">
         <div>
+          <span className="eyebrow">Time</span>
           <h1>Minha equipe</h1>
           <div className="contagem">
             {carregando ? "carregando..." : empresa ? empresa.nome : ""}
@@ -101,7 +106,7 @@ export default function Equipe({ perfil }) {
                   />
                 </div>
                 <button type="submit" className="botao dourado" disabled={enviando}>
-                  {enviando ? "Gerando..." : "Gerar convite"}
+                  <UserPlus size={15} strokeWidth={2.2} /> {enviando ? "Gerando..." : "Gerar convite"}
                 </button>
               </form>
 
@@ -111,7 +116,8 @@ export default function Equipe({ perfil }) {
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <code style={{ fontSize: 12, wordBreak: "break-all" }}>{linkGerado}</code>
                     <button type="button" className="botao fantasma" onClick={copiarLink} style={{ flexShrink: 0 }}>
-                      Copiar
+                      {copiado ? <Check size={14} strokeWidth={2.4} /> : <Copy size={14} strokeWidth={2.1} />}
+                      {copiado ? "Copiado" : "Copiar"}
                     </button>
                   </div>
                 </div>
