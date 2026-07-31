@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
+import { LogoCompleto } from "../components/Logo";
 
 // Se o link de convite tiver "?convite=TOKEN" na URL, já pega automaticamente
 function pegarConviteDaUrl() {
@@ -38,9 +39,7 @@ export default function TelaAutenticacao({ aoAutenticar }) {
   return (
     <div className="auth-shell">
       <div className="auth-lado-marca">
-        <div className="marca">
-          LicitTraker
-        </div>
+        <LogoCompleto />
         <p className="tagline">
           Todo dia, uma leitura das novas licitações do PNCP — só as que
           realmente batem com o seu negócio chegam até você.

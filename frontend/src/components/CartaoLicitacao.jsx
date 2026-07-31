@@ -3,30 +3,7 @@ import { Star, MapPin, Wallet, Clock, MessageCircle, ArrowUpRight } from "lucide
 import Carimbo from "./Carimbo";
 import PainelComentarios from "./PainelComentarios";
 import { api } from "../api";
-
-function formatarValor(valor) {
-  if (!valor) return "não informado";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
-}
-
-function diasAte(dataStr) {
-  if (!dataStr) return "—";
-  const data = new Date(dataStr);
-  const hoje = new Date();
-  const diffMs = data.setHours(0, 0, 0, 0) - hoje.setHours(0, 0, 0, 0);
-  const dias = Math.round(diffMs / 86400000);
-  if (dias < 0) return `venceu há ${Math.abs(dias)}d`;
-  if (dias === 0) return "hoje";
-  return `em ${dias}d`;
-}
-
-function urgente(dataStr) {
-  if (!dataStr) return false;
-  const data = new Date(dataStr);
-  const hoje = new Date();
-  const dias = Math.round((data.setHours(0, 0, 0, 0) - hoje.setHours(0, 0, 0, 0)) / 86400000);
-  return dias >= 0 && dias <= 3;
-}
+import { formatarValor, diasAte, urgente } from "../utils/data";
 
 export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
   const [favoritada, setFavoritada] = useState(lic.favoritada);
