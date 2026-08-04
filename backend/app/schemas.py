@@ -29,6 +29,11 @@ class UsuarioSaida(BaseModel):
     papel: str
     empresa_id: int
     criado_em: datetime
+    receber_notificacoes: bool = True
+
+
+class PreferenciasAtualizar(BaseModel):
+    receber_notificacoes: Optional[bool] = None
 
 
 class EmpresaSaida(BaseModel):
@@ -152,3 +157,18 @@ class ComentarioSaida(BaseModel):
     texto: str
     criado_em: datetime
     autor_email: str = ""
+
+
+# ---------- Estatísticas (gráficos do dashboard) ----------
+
+class ContagemPorChave(BaseModel):
+    chave: str
+    quantidade: int
+
+
+class EstatisticasSaida(BaseModel):
+    total: int
+    valor_total_estimado: float
+    por_uf: list[ContagemPorChave]
+    por_modalidade: list[ContagemPorChave]
+    por_mes: list[ContagemPorChave]

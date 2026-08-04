@@ -56,6 +56,21 @@ function montarQuery(params) {
   return texto ? `?${texto}` : "";
 }
 
+// Mapeia os filtros (nomes em camelCase usados no frontend) pros nomes de
+// query param que a API espera — reaproveitado por listar/exportar/estatísticas.
+function parametrosLicitacoes(filtros = {}) {
+  return {
+    criterio_id: filtros.criterioId,
+    busca: filtros.busca,
+    uf: filtros.uf,
+    orgao: filtros.orgao,
+    valor_min: filtros.valorMin,
+    valor_max: filtros.valorMax,
+    data_de: filtros.dataDe,
+    data_ate: filtros.dataAte,
+  };
+}
+
 export const api = {
   // ---------- Autenticação ----------
   async registrar({ email, senha, nomeEmpresa, tokenConvite }) {
@@ -104,6 +119,14 @@ export const api = {
     return requisicao("/auth/me");
   },
 
+  async atualizarPreferencias({ receberNotificacoes }) {
+    return requisicao("/auth/preferencias", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ receber_notificacoes: receberNotificacoes }),
+    });
+  },
+
   // ---------- Equipe ----------
   async minhaEmpresa() {
     return requisicao("/equipe/empresa");
@@ -150,19 +173,51 @@ export const api = {
   async listarLicitacoes(filtros = {}) {
     // filtros pode ter: criterioId, busca, uf, orgao, valorMin, valorMax, dataDe, dataAte, pagina, porPagina
     const query = montarQuery({
-      criterio_id: filtros.criterioId,
-      busca: filtros.busca,
-      uf: filtros.uf,
-      orgao: filtros.orgao,
-      valor_min: filtros.valorMin,
-      valor_max: filtros.valorMax,
-      data_de: filtros.dataDe,
-      data_ate: filtros.dataAte,
+      ...parametrosLicitacoes(filtros),
       pagina: filtros.pagina || 1,
       por_pagina: filtros.porPagina || 30,
     });
     // Retorna { total, pagina, por_pagina, total_paginas, itens }
     return requisicao(`/licitacoes${query}`);
+  },
+
+  async buscarEstatisticas(filtros = {}) {
+    return requisicao(`/licitacoes/estatisticas${montarQuery(parametrosLicitacoes(filtros))}`);
+  },
+
+  // Dispara o download do arquivo no browser (a resposta é binária, não JSON,
+  // então não passa pelo helper `requisicao`).
+  async exportarLicitacoes(filtros = {}, formato = "csv") {
+    const token = pegarToken();
+    const query = montarQuery({ ...parametrosLicitacoes(filtros), formato });
+    const resp = await fetch(`${API_BASE}/licitacoes/exportar${query}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!resp.ok) {
+      let detalhe = "Erro ao exportar";
+      try {
+        const corpo = await resp.json();
+        detalhe = corpo.detail || detalhe;
+      } catch {
+        // ignora se não vier JSON
+      }
+      throw new Error(detalhe);
+    }
+
+    const blob = await resp.blob();
+    const disposicao = resp.headers.get("Content-Disposition") || "";
+    const nomeMatch = disposicao.match(/filename="?([^"]+)"?/);
+    const nomeArquivo = nomeMatch ? nomeMatch[1] : `licitacoes.${formato}`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   },
 
   // ---------- Favoritos ----------

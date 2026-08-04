@@ -7,12 +7,16 @@ Pra rodar localmente:
 Depois abra http://127.0.0.1:8000/docs
 """
 
+import io
+from collections import Counter
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from . import models, schemas, auth, scoring
+from . import models, schemas, auth, scoring, exportacao
 from .database import engine, get_db, Base
 
 Base.metadata.create_all(bind=engine)
@@ -93,6 +97,19 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 
 @app.get("/auth/me", response_model=schemas.UsuarioSaida)
 def meu_perfil(usuario: models.User = Depends(auth.usuario_atual)):
+    return usuario
+
+
+@app.put("/auth/preferencias", response_model=schemas.UsuarioSaida)
+def atualizar_preferencias(
+    dados: schemas.PreferenciasAtualizar,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(usuario, campo, valor)
+    db.commit()
+    db.refresh(usuario)
     return usuario
 
 
@@ -182,22 +199,23 @@ def deletar_criterio(
 # Licitações — filtro por critério + busca avançada (as duas combinam)
 # ============================================================
 
-@app.get("/licitacoes", response_model=schemas.LicitacoesPaginadas)
-def listar_licitacoes(
-    criterio_id: int | None = None,
-    busca: str | None = None,
-    uf: str | None = None,
-    orgao: str | None = None,
-    valor_min: float | None = None,
-    valor_max: float | None = None,
-    data_de: str | None = None,
-    data_ate: str | None = None,
-    pagina: int = 1,
-    por_pagina: int = 30,
-    db: Session = Depends(get_db),
-    usuario: models.User = Depends(auth.usuario_atual),
-):
+def _buscar_licitacoes_pontuadas(
+    db: Session,
+    usuario: models.User,
+    criterio_id: int | None,
+    busca: str | None,
+    uf: str | None,
+    orgao: str | None,
+    valor_min: float | None,
+    valor_max: float | None,
+    data_de: str | None,
+    data_ate: str | None,
+) -> list[schemas.LicitacaoSaida]:
     """
+    Núcleo compartilhado de busca/pontuação — usado por `/licitacoes`,
+    `/licitacoes/exportar` e `/licitacoes/estatisticas`. Devolve a lista
+    JÁ ordenada por pontuação (sem paginar).
+
     Três formas de usar, que se combinam:
     - Só `criterio_id` (ou nenhum parâmetro): aplica os critérios salvos da
       empresa ("Licitações pra você").
@@ -210,14 +228,7 @@ def listar_licitacoes(
     O filtro pesado (texto, valor, estado, órgão) roda direto no banco
     (SQL) antes de qualquer processamento em Python — isso é o que mantém
     a busca rápida mesmo com uma base nacional bem maior.
-
-    Resultado vem paginado (`pagina`, começando em 1; `por_pagina`,
-    padrão 30) — importante com uma base grande, pra não devolver
-    milhares de itens numa resposta só.
     """
-    pagina = max(1, pagina)
-    por_pagina = max(1, min(por_pagina, 200))  # trava um teto, pra ninguém pedir 100000 de uma vez
-
     tem_filtro_avancado = any([busca, uf, orgao, valor_min is not None, valor_max is not None, data_de, data_ate])
 
     # -------- Pré-filtro no banco (rápido, mesmo com muitos registros) --------
@@ -278,7 +289,33 @@ def listar_licitacoes(
             saida.favoritada = licitacao.numero_controle in favoritos_ids
             resultados[licitacao.numero_controle] = saida
 
-    todos_ordenados = sorted(resultados.values(), key=lambda r: r.score, reverse=True)
+    return sorted(resultados.values(), key=lambda r: r.score, reverse=True)
+
+
+@app.get("/licitacoes", response_model=schemas.LicitacoesPaginadas)
+def listar_licitacoes(
+    criterio_id: int | None = None,
+    busca: str | None = None,
+    uf: str | None = None,
+    orgao: str | None = None,
+    valor_min: float | None = None,
+    valor_max: float | None = None,
+    data_de: str | None = None,
+    data_ate: str | None = None,
+    pagina: int = 1,
+    por_pagina: int = 30,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    """Resultado vem paginado (`pagina`, começando em 1; `por_pagina`,
+    padrão 30) — importante com uma base grande, pra não devolver
+    milhares de itens numa resposta só."""
+    pagina = max(1, pagina)
+    por_pagina = max(1, min(por_pagina, 200))  # trava um teto, pra ninguém pedir 100000 de uma vez
+
+    todos_ordenados = _buscar_licitacoes_pontuadas(
+        db, usuario, criterio_id, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
+    )
 
     total = len(todos_ordenados)
     total_paginas = max(1, (total + por_pagina - 1) // por_pagina)
@@ -291,6 +328,90 @@ def listar_licitacoes(
         por_pagina=por_pagina,
         total_paginas=total_paginas,
         itens=pagina_de_itens,
+    )
+
+
+LIMITE_EXPORTACAO = 3000
+
+MEDIA_TYPES_EXPORTACAO = {
+    "csv": "text/csv",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
+}
+
+
+@app.get("/licitacoes/exportar")
+def exportar_licitacoes(
+    formato: str = "csv",
+    criterio_id: int | None = None,
+    busca: str | None = None,
+    uf: str | None = None,
+    orgao: str | None = None,
+    valor_min: float | None = None,
+    valor_max: float | None = None,
+    data_de: str | None = None,
+    data_ate: str | None = None,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    """Exporta o mesmo resultado de `/licitacoes` (mesmos filtros), sem
+    paginação, num arquivo pra download. Limitado a LIMITE_EXPORTACAO itens
+    pra não travar em buscas nacionais gigantes — refine os filtros se
+    precisar de mais."""
+    if formato not in MEDIA_TYPES_EXPORTACAO:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use csv, xlsx ou pdf.")
+
+    itens = _buscar_licitacoes_pontuadas(
+        db, usuario, criterio_id, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
+    )[:LIMITE_EXPORTACAO]
+
+    if formato == "csv":
+        conteudo = exportacao.gerar_csv(itens)
+    elif formato == "xlsx":
+        conteudo = exportacao.gerar_xlsx(itens)
+    else:
+        conteudo = exportacao.gerar_pdf(itens)
+
+    nome_arquivo = f"licitacoes.{formato}"
+    return StreamingResponse(
+        io.BytesIO(conteudo),
+        media_type=MEDIA_TYPES_EXPORTACAO[formato],
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )
+
+
+@app.get("/licitacoes/estatisticas", response_model=schemas.EstatisticasSaida)
+def estatisticas_licitacoes(
+    criterio_id: int | None = None,
+    busca: str | None = None,
+    uf: str | None = None,
+    orgao: str | None = None,
+    valor_min: float | None = None,
+    valor_max: float | None = None,
+    data_de: str | None = None,
+    data_ate: str | None = None,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    """Agregados (por UF, por modalidade, por mês) sobre o mesmo resultado
+    de `/licitacoes`, pros gráficos do painel de indicadores."""
+    itens = _buscar_licitacoes_pontuadas(
+        db, usuario, criterio_id, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
+    )
+
+    contagem_uf = Counter((i.uf or "Não informado") for i in itens)
+    contagem_modalidade = Counter((i.modalidade or "Não informada") for i in itens)
+    contagem_mes = Counter()
+    for i in itens:
+        data_ref = i.data_encerramento_proposta or ""
+        contagem_mes[data_ref[:7] if len(data_ref) >= 7 else "Sem data"] += 1
+
+    return schemas.EstatisticasSaida(
+        total=len(itens),
+        valor_total_estimado=sum(i.valor_estimado or 0 for i in itens),
+        por_uf=[schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in contagem_uf.most_common(15)],
+        por_modalidade=[schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in contagem_modalidade.most_common(10)],
+        por_mes=[schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in sorted(contagem_mes.items())],
     )
 
 

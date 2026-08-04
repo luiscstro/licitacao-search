@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Download, ChevronDown } from "lucide-react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
+
+const FORMATOS_EXPORTACAO = [
+  { valor: "csv", rotulo: "CSV" },
+  { valor: "xlsx", rotulo: "Excel (.xlsx)" },
+  { valor: "pdf", rotulo: "PDF" },
+];
 
 const POR_PAGINA = 20;
 
@@ -25,25 +31,54 @@ export default function Dashboard() {
   const [total, setTotal] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
+  const [menuExportarAberto, setMenuExportarAberto] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const refExportar = useRef(null);
+
   useEffect(() => {
     api.listarCriterios().then(setCriterios).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    function aoClicarFora(e) {
+      if (refExportar.current && !refExportar.current.contains(e.target)) setMenuExportarAberto(false);
+    }
+    if (menuExportarAberto) document.addEventListener("mousedown", aoClicarFora);
+    return () => document.removeEventListener("mousedown", aoClicarFora);
+  }, [menuExportarAberto]);
+
+  function filtrosAtuais() {
+    return {
+      criterioId: criterioSelecionado === "todos" ? undefined : criterioSelecionado,
+      busca: busca.trim() || undefined,
+      uf: uf || undefined,
+      orgao: orgao || undefined,
+      valorMin: valorMin || undefined,
+      valorMax: valorMax || undefined,
+      dataDe: dataDe || undefined,
+      dataAte: dataAte || undefined,
+    };
+  }
+
+  async function exportar(formato) {
+    setMenuExportarAberto(false);
+    setErro("");
+    setExportando(true);
+    try {
+      await api.exportarLicitacoes(filtrosAtuais(), formato);
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setExportando(false);
+    }
+  }
+
   function buscarLicitacoes(paginaAlvo = 1) {
     setCarregando(true);
     setErro("");
-    const idFiltro = criterioSelecionado === "todos" ? undefined : criterioSelecionado;
-    const buscaLimpa = busca.trim();
     api
       .listarLicitacoes({
-        criterioId: idFiltro,
-        busca: buscaLimpa || undefined,
-        uf: uf || undefined,
-        orgao: orgao || undefined,
-        valorMin: valorMin || undefined,
-        valorMax: valorMax || undefined,
-        dataDe: dataDe || undefined,
-        dataAte: dataAte || undefined,
+        ...filtrosAtuais(),
         pagina: paginaAlvo,
         porPagina: POR_PAGINA,
       })
@@ -146,6 +181,29 @@ export default function Dashboard() {
             <SlidersHorizontal size={15} strokeWidth={2} />
             {filtrosAbertos ? "Ocultar filtros" : "Filtros avançados"}
           </button>
+
+          <div className="navbar-item-wrap" ref={refExportar}>
+            <button
+              type="button"
+              className="botao fantasma"
+              disabled={exportando || licitacoes.length === 0}
+              onClick={() => setMenuExportarAberto((v) => !v)}
+            >
+              <Download size={15} strokeWidth={2} />
+              {exportando ? "Exportando..." : "Exportar"}
+              <ChevronDown size={13} strokeWidth={2.2} />
+            </button>
+
+            {menuExportarAberto && (
+              <div className="painel-flutuante painel-exportar">
+                {FORMATOS_EXPORTACAO.map((f) => (
+                  <button key={f.valor} type="button" onClick={() => exportar(f.valor)}>
+                    {f.rotulo}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {filtrosAbertos && (

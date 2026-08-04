@@ -197,6 +197,39 @@ python collector_pncp.py
 
 ---
 
+## Notificações por e-mail (resumo diário)
+
+O sistema pode mandar um e-mail diário resumindo as licitações novas que bateram com os critérios de cada empresa. Cada usuário liga/desliga isso em "Notificações" (menu da conta).
+
+Configure as seguintes variáveis de ambiente antes de rodar o envio (no Windows, defina como variável de ambiente do sistema/usuário — Painel de Controle ou `setx`):
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=seuemail@gmail.com
+SMTP_PASSWORD=sua-senha-de-app
+SMTP_FROM=seuemail@gmail.com
+```
+
+> Se sua conta de e-mail tiver verificação em duas etapas (comum no Gmail/Outlook), use uma **senha de app** — não a senha normal da conta.
+
+Pra rodar manualmente:
+
+```bash
+cd backend
+python enviar_notificacoes_diarias.py
+```
+
+Pra rodar todo dia automaticamente, agende `backend/rodar_notificacoes_diarias.bat` no Agendador de Tarefas do Windows, uns 30 minutos depois do `rodar_coletor_diario.bat` (precisa que a coleta do dia já tenha terminado).
+
+---
+
+## Exportação e indicadores
+
+Na tela de Licitações dá pra exportar o resultado filtrado em CSV, Excel ou PDF. Em "Indicadores" (hub de Ferramentas) dá pra ver gráficos por UF, modalidade e mês de encerramento, sobre o mesmo conjunto filtrado.
+
+---
+
 ## Interface
 
 O sistema possui:
@@ -225,11 +258,6 @@ Este projeto foi desenvolvido com os seguintes objetivos:
 
 ## Próximos Passos
 
-- Hospedagem do sistema
-- Autenticação utilizando JWT
-- Notificações por e-mail
-- Atualização automática das licitações
-- Dashboard com gráficos e indicadores
-- Favoritar licitações
-- Exportação de resultados
+- Hospedagem do sistema (backend + coletor + notificações rodando na nuvem, não só localmente)
+- Notificações por WhatsApp
 - Melhorias na experiência do usuário

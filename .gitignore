@@ -3,3 +3,8 @@ __pycache__/
 *.db
 node_modules/
 .vite/
+dist/
+*.log
+log_coleta.txt
+log_coletor.txt
+log_notificacoes.txt

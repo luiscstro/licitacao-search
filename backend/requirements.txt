@@ -6,3 +6,5 @@ bcrypt
 python-multipart
 pydantic[email]
 requests
+openpyxl
+fpdf2

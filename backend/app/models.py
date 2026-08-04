@@ -45,6 +45,7 @@ class User(Base):
     papel = Column(String, default="owner")  # "owner" ou "membro"
     criado_em = Column(DateTime, default=datetime.utcnow)
     ativo = Column(Boolean, default=True)
+    receber_notificacoes = Column(Boolean, default=True)
 
     empresa = relationship("Empresa", back_populates="usuarios")
     favoritos = relationship("Favorito", back_populates="usuario", cascade="all, delete-orphan")

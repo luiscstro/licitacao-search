@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid } from "lucide-react";
+import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid, Bell } from "lucide-react";
 import { api } from "./api";
 import { LogoCompacto } from "./components/Logo";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard";
 import Criterios from "./pages/Criterios";
 import Favoritos from "./pages/Favoritos";
 import Equipe from "./pages/Equipe";
+import Notificacoes from "./pages/Notificacoes";
+import Indicadores from "./pages/Indicadores";
 import PainelAlertas from "./components/PainelAlertas";
 import PainelAjuda from "./components/PainelAjuda";
 
@@ -72,6 +74,8 @@ export default function App() {
     criterios: <Criterios />,
     favoritos: <Favoritos />,
     equipe: <Equipe perfil={perfil} />,
+    notificacoes: <Notificacoes perfil={perfil} aoAtualizarPerfil={setPerfil} />,
+    indicadores: <Indicadores />,
   };
 
   return (
@@ -119,6 +123,15 @@ export default function App() {
                 {perfil?.papel && (
                   <div className="painel-avatar-papel">{perfil.papel === "owner" ? "Dono da conta" : "Membro"}</div>
                 )}
+                <button
+                  className="painel-avatar-notificacoes"
+                  onClick={() => {
+                    setMenuAbertoAvatar(false);
+                    navegarPara("notificacoes");
+                  }}
+                >
+                  <Bell size={13} strokeWidth={2} /> Notificações
+                </button>
                 <button className="painel-avatar-sair" onClick={sair}>
                   <LogOut size={13} strokeWidth={2} /> Sair da conta
                 </button>

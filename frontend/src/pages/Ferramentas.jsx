@@ -27,6 +27,18 @@ const GRUPOS = [
         descricao: "Licitações que você guardou para acompanhar de perto.",
         pagina: "favoritos",
       },
+      {
+        Icone: Download,
+        titulo: "Exportação de Resultados",
+        descricao: "Baixe suas licitações filtradas em CSV, Excel ou PDF direto na tela de busca.",
+        pagina: "dashboard",
+      },
+      {
+        Icone: BarChart3,
+        titulo: "Indicadores",
+        descricao: "Gráficos por estado, modalidade e mês de encerramento das propostas.",
+        pagina: "indicadores",
+      },
     ],
   },
   {
@@ -46,6 +58,12 @@ const GRUPOS = [
         descricao: "Anotações deixadas em cada licitação ficam visíveis para todo o time.",
         pagina: "dashboard",
       },
+      {
+        Icone: Mail,
+        titulo: "Notificações por E-mail",
+        descricao: "Receba um resumo diário das novas licitações relevantes direto na caixa de entrada.",
+        pagina: "notificacoes",
+      },
     ],
   },
   {
@@ -53,10 +71,7 @@ const GRUPOS = [
     titulo: "Em Desenvolvimento",
     destaque: true,
     cartoes: [
-      { Icone: Mail, titulo: "Notificações por E-mail", descricao: "Receba um resumo das novas licitações relevantes direto na caixa de entrada." },
-      { Icone: BarChart3, titulo: "Dashboard com Indicadores", descricao: "Gráficos de volume, valores e desempenho por critério." },
-      { Icone: Download, titulo: "Exportação de Resultados", descricao: "Baixe suas licitações filtradas em planilha." },
-      { Icone: RefreshCw, titulo: "Atualização Automática", descricao: "Coleta diária de novas licitações do PNCP, sem rodar nada manualmente." },
+      { Icone: RefreshCw, titulo: "Atualização Automática na Nuvem", descricao: "Coleta diária de novas licitações do PNCP rodando hospedada, sem depender do seu computador ligado." },
     ],
   },
 ];
