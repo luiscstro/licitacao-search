@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid, Bell } from "lucide-react";
+import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid, Bell, Kanban, FileCheck2 } from "lucide-react";
 import { api } from "./api";
 import { LogoCompacto } from "./components/Logo";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
@@ -10,24 +10,21 @@ import Favoritos from "./pages/Favoritos";
 import Equipe from "./pages/Equipe";
 import Notificacoes from "./pages/Notificacoes";
 import Indicadores from "./pages/Indicadores";
+import Pipeline from "./pages/Pipeline";
+import Documentos from "./pages/Documentos";
 import PainelAlertas from "./components/PainelAlertas";
 import PainelAjuda from "./components/PainelAjuda";
+import { iniciais } from "./utils/data";
 
 const ITENS_NAV = [
   { id: "ferramentas", rotulo: "Ferramentas", Icone: LayoutGrid },
   { id: "dashboard", rotulo: "Licitações", Icone: Search },
   { id: "criterios", rotulo: "Meus critérios", Icone: ListChecks },
   { id: "favoritos", rotulo: "Favoritos", Icone: Star },
+  { id: "pipeline", rotulo: "Pipeline", Icone: Kanban },
+  { id: "documentos", rotulo: "Documentos", Icone: FileCheck2 },
   { id: "equipe", rotulo: "Minha equipe", Icone: Users2 },
 ];
-
-function iniciais(email) {
-  if (!email) return "?";
-  const nome = email.split("@")[0];
-  const partes = nome.split(/[._-]/).filter(Boolean);
-  if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
-  return nome.slice(0, 2).toUpperCase();
-}
 
 export default function App() {
   const [logado, setLogado] = useState(api.estaLogado());
@@ -73,6 +70,8 @@ export default function App() {
     dashboard: <Dashboard />,
     criterios: <Criterios />,
     favoritos: <Favoritos />,
+    pipeline: <Pipeline />,
+    documentos: <Documentos perfil={perfil} />,
     equipe: <Equipe perfil={perfil} />,
     notificacoes: <Notificacoes perfil={perfil} aoAtualizarPerfil={setPerfil} />,
     indicadores: <Indicadores />,
@@ -141,7 +140,9 @@ export default function App() {
         </div>
       </header>
 
-      <main className="conteudo">{paginas[pagina]}</main>
+      <main className="conteudo">
+        <div key={pagina} className="conteudo-pagina">{paginas[pagina]}</div>
+      </main>
 
       {ajudaAberta && <PainelAjuda aoFechar={() => setAjudaAberta(false)} />}
     </div>
