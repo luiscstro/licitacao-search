@@ -1058,6 +1058,40 @@ a:focus-visible {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Saída dos modais — mais sutil que a entrada (menos deslocamento),
+   acionada via hook useFecharAnimado antes de desmontar de verdade. */
+.painel-overlay.saindo {
+  animation: sumir 160ms ease both;
+  pointer-events: none;
+}
+
+@keyframes sumir {
+  to { opacity: 0; }
+}
+
+.painel-modal.saindo {
+  animation: modal-sair 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes modal-sair {
+  to { opacity: 0; transform: translateY(6px) scale(0.99); }
+}
+
+/* Spinner inline para botões com ação assíncrona mais demorada
+   (chamada externa, upload, geração de arquivo) — reaproveita o
+   giro de .carregando, mas herda a cor do texto do botão. */
+.spinner-inline {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.85;
+  animation: girar 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
 /* ============================================================
    Movimento reutilizável — transição de página, entrada
    escalonada de listas/grades, esqueletos de carregamento

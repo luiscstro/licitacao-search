@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Send } from "lucide-react";
 import { api } from "../api";
+import { useFecharAnimado } from "../hooks/useFecharAnimado";
 
 export default function PainelComentarios({ numeroControle, aoFechar }) {
   const [comentarios, setComentarios] = useState([]);
@@ -8,6 +9,7 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [saindo, fechar] = useFecharAnimado(aoFechar);
 
   function carregar() {
     setCarregando(true);
@@ -40,13 +42,13 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
   }
 
   return (
-    <div className="painel-overlay" onClick={aoFechar}>
-      <div className="painel-modal card-formulario" onClick={(e) => e.stopPropagation()}>
+    <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
+      <div className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <h2 style={{ marginBottom: 0 }}>Comentários da equipe</h2>
           <button
             className="botao fantasma"
-            onClick={aoFechar}
+            onClick={fechar}
             style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }}
             aria-label="Fechar"
           >
@@ -59,7 +61,16 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
         {erro && <div className="erro-msg">{erro}</div>}
 
         <div style={{ overflowY: "auto", flex: 1, marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-          {carregando && <div className="carregando">Carregando comentários...</div>}
+          {carregando && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[0, 1].map((i) => (
+                <div key={i} className="esqueleto-cartao" style={{ padding: 10 }}>
+                  <div className="esqueleto-linha curta" />
+                  <div className="esqueleto-linha media" />
+                </div>
+              ))}
+            </div>
+          )}
           {!carregando && comentarios.length === 0 && (
             <p className="ajuda">Nenhum comentário ainda. Seja o primeiro da equipe a anotar algo aqui.</p>
           )}

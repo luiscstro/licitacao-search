@@ -189,7 +189,7 @@ export default function Dashboard() {
               disabled={exportando || licitacoes.length === 0}
               onClick={() => setMenuExportarAberto((v) => !v)}
             >
-              <Download size={15} strokeWidth={2} />
+              {exportando ? <span className="spinner-inline" /> : <Download size={15} strokeWidth={2} />}
               {exportando ? "Exportando..." : "Exportar"}
               <ChevronDown size={13} strokeWidth={2.2} />
             </button>

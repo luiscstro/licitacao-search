@@ -1,4 +1,5 @@
 import { X, Target, ListChecks, Search, Star } from "lucide-react";
+import { useFecharAnimado } from "../hooks/useFecharAnimado";
 
 const TOPICOS = [
   {
@@ -49,9 +50,11 @@ const TOPICOS = [
 ];
 
 export default function PainelAjuda({ aoFechar }) {
+  const [saindo, fechar] = useFecharAnimado(aoFechar);
+
   return (
-    <div className="painel-overlay" onClick={aoFechar}>
-      <div className="painel-modal painel-ajuda card-formulario" onClick={(e) => e.stopPropagation()}>
+    <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
+      <div className={`painel-modal painel-ajuda card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
           <div>
             <span className="eyebrow">Guia rápido</span>
@@ -59,7 +62,7 @@ export default function PainelAjuda({ aoFechar }) {
           </div>
           <button
             className="botao fantasma"
-            onClick={aoFechar}
+            onClick={fechar}
             style={{ padding: 8, borderRadius: "50%", width: 32, height: 32, flexShrink: 0 }}
             aria-label="Fechar"
           >

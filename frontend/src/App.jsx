@@ -1,20 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid, Bell, Kanban, FileCheck2 } from "lucide-react";
 import { api } from "./api";
 import { LogoCompacto } from "./components/Logo";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
-import Ferramentas from "./pages/Ferramentas";
-import Dashboard from "./pages/Dashboard";
-import Criterios from "./pages/Criterios";
-import Favoritos from "./pages/Favoritos";
-import Equipe from "./pages/Equipe";
-import Notificacoes from "./pages/Notificacoes";
-import Indicadores from "./pages/Indicadores";
-import Pipeline from "./pages/Pipeline";
-import Documentos from "./pages/Documentos";
 import PainelAlertas from "./components/PainelAlertas";
 import PainelAjuda from "./components/PainelAjuda";
+import EsqueletoPagina from "./components/EsqueletoPagina";
 import { iniciais } from "./utils/data";
+
+// Cada página vira um chunk separado, baixado só quando o usuário navega
+// até ela — a tela de login continua no bundle principal (é a primeira
+// coisa renderizada, não faz sentido adiar).
+const Ferramentas = lazy(() => import("./pages/Ferramentas"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Criterios = lazy(() => import("./pages/Criterios"));
+const Favoritos = lazy(() => import("./pages/Favoritos"));
+const Equipe = lazy(() => import("./pages/Equipe"));
+const Notificacoes = lazy(() => import("./pages/Notificacoes"));
+const Indicadores = lazy(() => import("./pages/Indicadores"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
+const Documentos = lazy(() => import("./pages/Documentos"));
 
 const ITENS_NAV = [
   { id: "ferramentas", rotulo: "Ferramentas", Icone: LayoutGrid },
@@ -141,7 +146,9 @@ export default function App() {
       </header>
 
       <main className="conteudo">
-        <div key={pagina} className="conteudo-pagina">{paginas[pagina]}</div>
+        <div key={pagina} className="conteudo-pagina">
+          <Suspense fallback={<EsqueletoPagina />}>{paginas[pagina]}</Suspense>
+        </div>
       </main>
 
       {ajudaAberta && <PainelAjuda aoFechar={() => setAjudaAberta(false)} />}
