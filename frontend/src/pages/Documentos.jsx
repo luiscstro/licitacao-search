@@ -5,6 +5,7 @@ import {
 import { api } from "../api";
 import Carimbo from "../components/Carimbo";
 import NumeroAnimado from "../components/NumeroAnimado";
+import { useFecharAnimado } from "../hooks/useFecharAnimado";
 
 const CATEGORIAS = [
   { chave: "juridica", rotulo: "Habilitação Jurídica" },
@@ -56,6 +57,7 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
   const [arquivo, setArquivo] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [saindo, fechar] = useFecharAnimado(aoFechar);
 
   const substituindo = !!documento;
 
@@ -89,11 +91,11 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
   }
 
   return (
-    <div className="painel-overlay" onClick={aoFechar}>
-      <div className="painel-modal card-formulario" onClick={(e) => e.stopPropagation()}>
+    <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
+      <div className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <h2 style={{ marginBottom: 0 }}>{substituindo ? `Substituir: ${documento.nome}` : "Adicionar documento"}</h2>
-          <button className="botao fantasma" onClick={aoFechar} style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }} aria-label="Fechar">
+          <button className="botao fantasma" onClick={fechar} style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }} aria-label="Fechar">
             <X size={15} strokeWidth={2.2} />
           </button>
         </div>
@@ -152,9 +154,9 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
 
           <div className="acoes-formulario">
             <button type="submit" className="botao primario" disabled={salvando}>
-              {salvando ? "Enviando..." : "Salvar"}
+              {salvando && <span className="spinner-inline" />} {salvando ? "Enviando..." : "Salvar"}
             </button>
-            <button type="button" className="botao fantasma" onClick={aoFechar}>Cancelar</button>
+            <button type="button" className="botao fantasma" onClick={fechar}>Cancelar</button>
           </div>
         </form>
       </div>
@@ -165,22 +167,32 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
 function PainelHistorico({ documento, aoFechar }) {
   const [historico, setHistorico] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [saindo, fechar] = useFecharAnimado(aoFechar);
 
   useEffect(() => {
     api.historicoDocumento(documento.id).then(setHistorico).finally(() => setCarregando(false));
   }, [documento.id]);
 
   return (
-    <div className="painel-overlay" onClick={aoFechar}>
-      <div className="painel-modal card-formulario" onClick={(e) => e.stopPropagation()}>
+    <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
+      <div className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <h2 style={{ marginBottom: 0 }}>Histórico: {documento.nome}</h2>
-          <button className="botao fantasma" onClick={aoFechar} style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }} aria-label="Fechar">
+          <button className="botao fantasma" onClick={fechar} style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }} aria-label="Fechar">
             <X size={15} strokeWidth={2.2} />
           </button>
         </div>
 
-        {carregando && <div className="carregando">Carregando...</div>}
+        {carregando && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[0, 1].map((i) => (
+              <div key={i} className="esqueleto-cartao" style={{ padding: 10 }}>
+                <div className="esqueleto-linha curta" />
+                <div className="esqueleto-linha media" />
+              </div>
+            ))}
+          </div>
+        )}
         {!carregando && historico.length === 0 && <p className="ajuda">Ainda não houve substituições desse documento.</p>}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
@@ -384,7 +396,8 @@ export default function Documentos({ perfil }) {
                   <Pencil size={13} strokeWidth={2.1} /> Editar
                 </button>
                 <button className="botao fantasma" onClick={sincronizarCnpj} disabled={sincronizando || !empresa.cnpj}>
-                  <RefreshCw size={13} strokeWidth={2.1} /> {sincronizando ? "Sincronizando..." : "Sincronizar CNPJ"}
+                  {sincronizando ? <span className="spinner-inline" /> : <RefreshCw size={13} strokeWidth={2.1} />}
+                  {sincronizando ? "Sincronizando..." : "Sincronizar CNPJ"}
                 </button>
               </div>
             )}
