@@ -9,3 +9,4 @@ log_coleta.txt
 log_coletor.txt
 log_notificacoes.txt
 backend/uploads/
+.claude/

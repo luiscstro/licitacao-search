@@ -1,6 +1,6 @@
 import {
   Search, ListChecks, Star, Users2, MessageCircle,
-  Mail, BarChart3, Download, RefreshCw, ArrowRight, Clock,
+  Mail, BarChart3, Download, RefreshCw, ArrowRight, Clock, Kanban, FileCheck2,
 } from "lucide-react";
 
 const GRUPOS = [
@@ -26,6 +26,12 @@ const GRUPOS = [
         titulo: "Favoritos",
         descricao: "Licitações que você guardou para acompanhar de perto.",
         pagina: "favoritos",
+      },
+      {
+        Icone: Kanban,
+        titulo: "Pipeline",
+        descricao: "Mini-CRM compartilhado: acompanhe cada oportunidade de Monitorando até Ganhou/Perdeu.",
+        pagina: "pipeline",
       },
       {
         Icone: Download,
@@ -63,6 +69,19 @@ const GRUPOS = [
         titulo: "Notificações por E-mail",
         descricao: "Receba um resumo diário das novas licitações relevantes direto na caixa de entrada.",
         pagina: "notificacoes",
+      },
+    ],
+  },
+  {
+    id: "habilitacao",
+    titulo: "Habilitação & Certidões",
+    destaque: false,
+    cartoes: [
+      {
+        Icone: FileCheck2,
+        titulo: "Documentos e Certidões",
+        descricao: "Centralize documentos de habilitação e certidões, com controle de vencimento, alertas e sincronização de dados do CNPJ.",
+        pagina: "documentos",
       },
     ],
   },

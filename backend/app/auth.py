@@ -5,6 +5,7 @@ sem precisar mandar email+senha em toda requisição).
 """
 
 import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -17,9 +18,20 @@ from sqlalchemy.orm import Session
 from . import models
 from .database import get_db
 
-# ⚠️ Em produção, defina isso como variável de ambiente — nunca deixe fixo
-# no código quando for publicar de verdade.
-SECRET_KEY = os.getenv("SECRET_KEY", "chave-temporaria-troque-isso-em-producao")
+# Em produção, defina SECRET_KEY como variável de ambiente (mesmo padrão do
+# SMTP_* em email_utils.py). Sem ela, geramos uma chave aleatória só pra essa
+# execução — nunca uma string fixa/previsível no código — mas isso invalida
+# todos os tokens emitidos a cada reinício do servidor, então é só pra
+# desenvolvimento local mesmo.
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_hex(32)
+    print(
+        "AVISO: SECRET_KEY nao definida - usando uma chave aleatoria temporaria "
+        "so para esta execucao (todos os logins serao invalidados ao reiniciar "
+        "o servidor). Defina SECRET_KEY como variavel de ambiente para producao "
+        "ou para manter sessoes entre reinicios."
+    )
 ALGORITHM = "HS256"
 EXPIRACAO_TOKEN_MINUTOS = 60 * 24 * 7  # 7 dias
 

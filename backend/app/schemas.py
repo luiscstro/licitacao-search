@@ -40,6 +40,42 @@ class EmpresaSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     nome: str
+    cnpj: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco_logradouro: Optional[str] = None
+    endereco_numero: Optional[str] = None
+    endereco_complemento: Optional[str] = None
+    endereco_bairro: Optional[str] = None
+    endereco_cidade: Optional[str] = None
+    endereco_uf: Optional[str] = None
+    endereco_cep: Optional[str] = None
+    representante_nome: Optional[str] = None
+    representante_cpf: Optional[str] = None
+    representante_cargo: Optional[str] = None
+    representante_email: Optional[str] = None
+    representante_telefone: Optional[str] = None
+    situacao_cadastral: Optional[str] = None
+    cnpj_sincronizado_em: Optional[datetime] = None
+
+
+class EmpresaAtualizar(BaseModel):
+    nome: Optional[str] = None
+    cnpj: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco_logradouro: Optional[str] = None
+    endereco_numero: Optional[str] = None
+    endereco_complemento: Optional[str] = None
+    endereco_bairro: Optional[str] = None
+    endereco_cidade: Optional[str] = None
+    endereco_uf: Optional[str] = None
+    endereco_cep: Optional[str] = None
+    representante_nome: Optional[str] = None
+    representante_cpf: Optional[str] = None
+    representante_cargo: Optional[str] = None
+    representante_email: Optional[str] = None
+    representante_telefone: Optional[str] = None
 
 
 class Token(BaseModel):
@@ -122,6 +158,18 @@ class LicitacaoSaida(BaseModel):
     favoritada: bool = False
 
 
+# ---------- Pipeline (mini-CRM, compartilhado pela empresa) ----------
+
+class OportunidadeSaida(LicitacaoSaida):
+    status: str = "monitorando"
+    status_atualizado_em: Optional[datetime] = None
+    atualizado_por_email: str = ""
+
+
+class AtualizarStatusEntrada(BaseModel):
+    status: str
+
+
 # ---------- Licitações paginadas ----------
 
 class LicitacoesPaginadas(BaseModel):
@@ -172,3 +220,56 @@ class EstatisticasSaida(BaseModel):
     por_uf: list[ContagemPorChave]
     por_modalidade: list[ContagemPorChave]
     por_mes: list[ContagemPorChave]
+
+
+# ---------- Documentos de habilitação / certidões ----------
+
+class DocumentoAtualizar(BaseModel):
+    nome: Optional[str] = None
+    categoria: Optional[str] = None
+    data_emissao: Optional[datetime] = None
+    data_validade: Optional[datetime] = None
+
+
+class DocumentoSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    categoria: str
+    nome: str
+    nome_arquivo_original: str
+    tamanho_bytes: int
+    data_emissao: Optional[datetime] = None
+    data_validade: Optional[datetime] = None
+    status: str = "sem_data"
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_por_email: str = ""
+
+
+class DocumentoHistoricoSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nome: str
+    nome_arquivo_original: str
+    data_emissao: Optional[datetime] = None
+    data_validade: Optional[datetime] = None
+    substituido_em: datetime
+    substituido_por_email: str = ""
+
+
+class ContagemPorStatus(BaseModel):
+    status: str
+    quantidade: int
+
+
+class AtividadeRecente(BaseModel):
+    nome: str
+    categoria: str
+    atualizado_em: datetime
+    atualizado_por_email: str = ""
+
+
+class IndicadoresDocumentosSaida(BaseModel):
+    por_status: list[ContagemPorStatus]
+    por_categoria: list[ContagemPorChave]
+    ultimas_atualizacoes: list[AtividadeRecente]

@@ -103,3 +103,58 @@ def montar_email_resumo(empresa_nome: str, itens: list[dict]) -> str:
       </div>
     </div>
     """
+
+
+def montar_email_alerta_vencimento(empresa_nome: str, itens: list[dict]) -> str:
+    """Monta o HTML do alerta de vencimento de documentos/certidões. Cada
+    item de `itens` é um dict com: nome, categoria, dias_restantes
+    (negativo = já venceu)."""
+    linhas_html = []
+    for item in itens:
+        dias = item.get("dias_restantes", 0)
+        if dias < 0:
+            situacao = f"venceu há {abs(dias)} dia(s)"
+            cor = "#b14b3b"
+        elif dias == 0:
+            situacao = "vence hoje"
+            cor = "#b14b3b"
+        else:
+            situacao = f"vence em {dias} dia(s)"
+            cor = "#a9872a" if dias <= 15 else "#2f6b4f"
+
+        linhas_html.append(f"""
+        <tr>
+          <td style="padding:16px 0;border-bottom:1px solid #e7e7ea;">
+            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a9872a;font-weight:600;margin-bottom:4px;">
+              {item.get("categoria", "")}
+            </div>
+            <div style="font-size:15px;font-weight:600;color:#0f0f11;margin-bottom:4px;">
+              {item.get("nome") or "Documento"}
+            </div>
+            <div style="font-size:13px;font-weight:600;color:{cor};">
+              {situacao}
+            </div>
+          </td>
+        </tr>""")
+
+    return f"""
+    <div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;background:#f7f7f7;padding:24px;">
+      <div style="background:linear-gradient(160deg,#0f0f11 0%,#000 100%);border-radius:10px 10px 0 0;padding:22px 24px;">
+        <div style="font-size:18px;font-weight:700;">
+          <span style="color:#fff;">Licit</span><span style="color:#d4af37;">Tracker</span>
+        </div>
+        <div style="font-size:12.5px;color:#b5b5bd;margin-top:4px;">
+          Documentos e certidões próximos do vencimento — {empresa_nome}
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e7e7ea;border-top:none;border-radius:0 0 10px 10px;padding:8px 24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          {"".join(linhas_html)}
+        </table>
+        <p style="font-size:11.5px;color:#8b8b93;padding:16px 0 4px;">
+          Você recebeu este e-mail porque tem notificações ativadas no LicitTracker.
+          Pode desativar a qualquer momento no menu da sua conta.
+        </p>
+      </div>
+    </div>
+    """
