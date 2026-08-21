@@ -1,11 +1,23 @@
+import {
+  Bell,
+  ChevronDown,
+  FileCheck2,
+  HelpCircle,
+  Kanban,
+  LayoutGrid,
+  ListChecks,
+  LogOut,
+  Search,
+  Star,
+  Users2,
+} from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid, Bell, Kanban, FileCheck2 } from "lucide-react";
 import { api } from "./api";
-import { LogoCompacto } from "./components/Logo";
-import TelaAutenticacao from "./pages/TelaAutenticacao";
-import PainelAlertas from "./components/PainelAlertas";
-import PainelAjuda from "./components/PainelAjuda";
 import EsqueletoPagina from "./components/EsqueletoPagina";
+import { LogoCompacto } from "./components/Logo";
+import PainelAjuda from "./components/PainelAjuda";
+import PainelAlertas from "./components/PainelAlertas";
+import TelaAutenticacao from "./pages/TelaAutenticacao";
 import { iniciais } from "./utils/data";
 
 // Cada página vira um chunk separado, baixado só quando o usuário navega
@@ -43,7 +55,10 @@ export default function App() {
 
   useEffect(() => {
     if (logado) {
-      api.meuPerfil().then(setPerfil).catch(() => {});
+      api
+        .meuPerfil()
+        .then(setPerfil)
+        .catch(() => {});
     }
   }, [logado]);
 
@@ -125,7 +140,9 @@ export default function App() {
               <div className="painel-flutuante painel-avatar">
                 <div className="painel-avatar-email">{perfil?.email}</div>
                 {perfil?.papel && (
-                  <div className="painel-avatar-papel">{perfil.papel === "owner" ? "Dono da conta" : "Membro"}</div>
+                  <div className="painel-avatar-papel">
+                    {perfil.papel === "owner" ? "Dono da conta" : "Membro"}
+                  </div>
                 )}
                 <button
                   className="painel-avatar-notificacoes"

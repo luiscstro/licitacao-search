@@ -9,6 +9,7 @@ export default function EsqueletoPagina() {
       </div>
       <div className="grade-licitacoes">
         {Array.from({ length: 3 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: placeholder de tamanho fixo, nunca reordenado
           <div key={i} className="esqueleto-cartao">
             <div className="esqueleto-linha curta" />
             <div className="esqueleto-linha media" />

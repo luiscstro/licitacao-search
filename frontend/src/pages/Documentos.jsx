@@ -1,7 +1,5 @@
+import { Building2, Download, FolderOpen, History, Pencil, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  Building2, RefreshCw, Upload, Download, Trash2, Pencil, History, X, FolderOpen,
-} from "lucide-react";
 import { api } from "../api";
 import Carimbo from "../components/Carimbo";
 import NumeroAnimado from "../components/NumeroAnimado";
@@ -37,11 +35,22 @@ const STATUS_INFO = {
 };
 
 const EMPRESA_VAZIA = {
-  nome: "", cnpj: "", inscricao_estadual: "", inscricao_municipal: "",
-  endereco_logradouro: "", endereco_numero: "", endereco_complemento: "", endereco_bairro: "",
-  endereco_cidade: "", endereco_uf: "", endereco_cep: "",
-  representante_nome: "", representante_cpf: "", representante_cargo: "",
-  representante_email: "", representante_telefone: "",
+  nome: "",
+  cnpj: "",
+  inscricao_estadual: "",
+  inscricao_municipal: "",
+  endereco_logradouro: "",
+  endereco_numero: "",
+  endereco_complemento: "",
+  endereco_bairro: "",
+  endereco_cidade: "",
+  endereco_uf: "",
+  endereco_cep: "",
+  representante_nome: "",
+  representante_cpf: "",
+  representante_cargo: "",
+  representante_email: "",
+  representante_telefone: "",
 };
 
 function formatarData(iso) {
@@ -92,10 +101,22 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
 
   return (
     <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
-      <div className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <h2 style={{ marginBottom: 0 }}>{substituindo ? `Substituir: ${documento.nome}` : "Adicionar documento"}</h2>
-          <button className="botao fantasma" onClick={fechar} style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }} aria-label="Fechar">
+      <div
+        className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}
+        >
+          <h2 style={{ marginBottom: 0 }}>
+            {substituindo ? `Substituir: ${documento.nome}` : "Adicionar documento"}
+          </h2>
+          <button
+            className="botao fantasma"
+            onClick={fechar}
+            style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }}
+            aria-label="Fechar"
+          >
             <X size={15} strokeWidth={2.2} />
           </button>
         </div>
@@ -117,14 +138,20 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
                   placeholder="Ex: Certidão Negativa de Débitos Estaduais"
                 />
                 <datalist id="sugestoes-nome-documento">
-                  {SUGESTOES_NOME.map((s) => <option key={s} value={s} />)}
+                  {SUGESTOES_NOME.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
                 </datalist>
               </div>
 
               <div className="campo">
                 <label htmlFor="doc-categoria">Categoria</label>
                 <select id="doc-categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                  {CATEGORIAS.map((c) => <option key={c.chave} value={c.chave}>{c.rotulo}</option>)}
+                  {CATEGORIAS.map((c) => (
+                    <option key={c.chave} value={c.chave}>
+                      {c.rotulo}
+                    </option>
+                  ))}
                 </select>
               </div>
             </>
@@ -133,11 +160,21 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
           <div className="linha-dupla">
             <div className="campo">
               <label htmlFor="doc-emissao">Data de emissão (opcional)</label>
-              <input id="doc-emissao" type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
+              <input
+                id="doc-emissao"
+                type="date"
+                value={dataEmissao}
+                onChange={(e) => setDataEmissao(e.target.value)}
+              />
             </div>
             <div className="campo">
               <label htmlFor="doc-validade">Data de validade (opcional)</label>
-              <input id="doc-validade" type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} />
+              <input
+                id="doc-validade"
+                type="date"
+                value={dataValidade}
+                onChange={(e) => setDataValidade(e.target.value)}
+              />
             </div>
           </div>
 
@@ -156,7 +193,9 @@ function PainelUpload({ categoriaInicial, documento, aoFechar, aoSalvar }) {
             <button type="submit" className="botao primario" disabled={salvando}>
               {salvando && <span className="spinner-inline" />} {salvando ? "Enviando..." : "Salvar"}
             </button>
-            <button type="button" className="botao fantasma" onClick={fechar}>Cancelar</button>
+            <button type="button" className="botao fantasma" onClick={fechar}>
+              Cancelar
+            </button>
           </div>
         </form>
       </div>
@@ -170,15 +209,28 @@ function PainelHistorico({ documento, aoFechar }) {
   const [saindo, fechar] = useFecharAnimado(aoFechar);
 
   useEffect(() => {
-    api.historicoDocumento(documento.id).then(setHistorico).finally(() => setCarregando(false));
+    api
+      .historicoDocumento(documento.id)
+      .then(setHistorico)
+      .finally(() => setCarregando(false));
   }, [documento.id]);
 
   return (
     <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
-      <div className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <div
+        className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}
+        >
           <h2 style={{ marginBottom: 0 }}>Histórico: {documento.nome}</h2>
-          <button className="botao fantasma" onClick={fechar} style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }} aria-label="Fechar">
+          <button
+            className="botao fantasma"
+            onClick={fechar}
+            style={{ padding: 8, borderRadius: "50%", width: 32, height: 32 }}
+            aria-label="Fechar"
+          >
             <X size={15} strokeWidth={2.2} />
           </button>
         </div>
@@ -193,17 +245,29 @@ function PainelHistorico({ documento, aoFechar }) {
             ))}
           </div>
         )}
-        {!carregando && historico.length === 0 && <p className="ajuda">Ainda não houve substituições desse documento.</p>}
+        {!carregando && historico.length === 0 && (
+          <p className="ajuda">Ainda não houve substituições desse documento.</p>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
           {historico.map((h) => (
             <div key={h.id} style={{ borderBottom: "1px dashed var(--linha)", paddingBottom: 8 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{h.nome_arquivo_original}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>
+                {h.nome_arquivo_original}
+              </div>
               <div style={{ fontSize: 12.5, color: "var(--slate)", marginTop: 2 }}>
                 validade anterior: {formatarData(h.data_validade)}
               </div>
-              <div style={{ fontSize: 11, color: "var(--slate-dim)", marginTop: 4, fontFamily: "var(--fonte-mono)" }}>
-                substituído em {new Date(h.substituido_em).toLocaleString("pt-BR")} por {h.substituido_por_email}
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--slate-dim)",
+                  marginTop: 4,
+                  fontFamily: "var(--fonte-mono)",
+                }}
+              >
+                substituído em {new Date(h.substituido_em).toLocaleString("pt-BR")} por{" "}
+                {h.substituido_por_email}
               </div>
             </div>
           ))}
@@ -348,28 +412,38 @@ export default function Documentos({ perfil }) {
         <div className="grade-resumo-indicadores">
           <div className="pastilha-resumo">
             <span className="pastilha-resumo-rotulo">Válidos</span>
-            <span className="pastilha-resumo-valor"><NumeroAnimado valor={contarPorStatus("valida")} /></span>
+            <span className="pastilha-resumo-valor">
+              <NumeroAnimado valor={contarPorStatus("valida")} />
+            </span>
           </div>
           <div className="pastilha-resumo">
             <span className="pastilha-resumo-rotulo">Vencendo (30 dias)</span>
-            <span className="pastilha-resumo-valor"><NumeroAnimado valor={contarPorStatus("vencendo")} /></span>
+            <span className="pastilha-resumo-valor">
+              <NumeroAnimado valor={contarPorStatus("vencendo")} />
+            </span>
           </div>
           <div className="pastilha-resumo">
             <span className="pastilha-resumo-rotulo">Vencidos</span>
-            <span className="pastilha-resumo-valor"><NumeroAnimado valor={contarPorStatus("vencida")} /></span>
+            <span className="pastilha-resumo-valor">
+              <NumeroAnimado valor={contarPorStatus("vencida")} />
+            </span>
           </div>
         </div>
       )}
 
       {!carregando && empresa && !editandoEmpresa && (
         <div className="card-formulario" style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}
+          >
             <div>
               <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Building2 size={17} strokeWidth={2} /> Dados da empresa
               </h2>
               <div style={{ fontSize: 14, color: "var(--slate)", marginTop: 4 }}>{empresa.nome}</div>
-              <div style={{ fontSize: 13, color: "var(--slate)", marginTop: 2, fontFamily: "var(--fonte-mono)" }}>
+              <div
+                style={{ fontSize: 13, color: "var(--slate)", marginTop: 2, fontFamily: "var(--fonte-mono)" }}
+              >
                 CNPJ: {empresa.cnpj || "não cadastrado"}
               </div>
               {empresa.situacao_cadastral && (
@@ -386,7 +460,14 @@ export default function Documentos({ perfil }) {
               )}
               {(empresa.endereco_cidade || empresa.endereco_uf) && (
                 <div style={{ fontSize: 13, color: "var(--slate)", marginTop: 6 }}>
-                  {[empresa.endereco_logradouro, empresa.endereco_numero, empresa.endereco_cidade, empresa.endereco_uf].filter(Boolean).join(", ")}
+                  {[
+                    empresa.endereco_logradouro,
+                    empresa.endereco_numero,
+                    empresa.endereco_cidade,
+                    empresa.endereco_uf,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                 </div>
               )}
             </div>
@@ -395,8 +476,16 @@ export default function Documentos({ perfil }) {
                 <button className="botao fantasma" onClick={abrirEdicaoEmpresa}>
                   <Pencil size={13} strokeWidth={2.1} /> Editar
                 </button>
-                <button className="botao fantasma" onClick={sincronizarCnpj} disabled={sincronizando || !empresa.cnpj}>
-                  {sincronizando ? <span className="spinner-inline" /> : <RefreshCw size={13} strokeWidth={2.1} />}
+                <button
+                  className="botao fantasma"
+                  onClick={sincronizarCnpj}
+                  disabled={sincronizando || !empresa.cnpj}
+                >
+                  {sincronizando ? (
+                    <span className="spinner-inline" />
+                  ) : (
+                    <RefreshCw size={13} strokeWidth={2.1} />
+                  )}
                   {sincronizando ? "Sincronizando..." : "Sincronizar CNPJ"}
                 </button>
               </div>
@@ -411,150 +500,269 @@ export default function Documentos({ perfil }) {
           <form onSubmit={salvarEmpresa}>
             <div className="campo">
               <label htmlFor="emp-nome">Razão social</label>
-              <input id="emp-nome" type="text" required value={formEmpresa.nome} onChange={(e) => setFormEmpresa({ ...formEmpresa, nome: e.target.value })} />
+              <input
+                id="emp-nome"
+                type="text"
+                required
+                value={formEmpresa.nome}
+                onChange={(e) => setFormEmpresa({ ...formEmpresa, nome: e.target.value })}
+              />
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-cnpj">CNPJ</label>
-                <input id="emp-cnpj" type="text" value={formEmpresa.cnpj} onChange={(e) => setFormEmpresa({ ...formEmpresa, cnpj: e.target.value })} placeholder="00000000000000" />
+                <input
+                  id="emp-cnpj"
+                  type="text"
+                  value={formEmpresa.cnpj}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, cnpj: e.target.value })}
+                  placeholder="00000000000000"
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-ie">Inscrição Estadual</label>
-                <input id="emp-ie" type="text" value={formEmpresa.inscricao_estadual} onChange={(e) => setFormEmpresa({ ...formEmpresa, inscricao_estadual: e.target.value })} />
+                <input
+                  id="emp-ie"
+                  type="text"
+                  value={formEmpresa.inscricao_estadual}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, inscricao_estadual: e.target.value })}
+                />
               </div>
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-im">Inscrição Municipal</label>
-                <input id="emp-im" type="text" value={formEmpresa.inscricao_municipal} onChange={(e) => setFormEmpresa({ ...formEmpresa, inscricao_municipal: e.target.value })} />
+                <input
+                  id="emp-im"
+                  type="text"
+                  value={formEmpresa.inscricao_municipal}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, inscricao_municipal: e.target.value })}
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-cep">CEP</label>
-                <input id="emp-cep" type="text" value={formEmpresa.endereco_cep} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_cep: e.target.value })} />
+                <input
+                  id="emp-cep"
+                  type="text"
+                  value={formEmpresa.endereco_cep}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_cep: e.target.value })}
+                />
               </div>
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-logradouro">Logradouro</label>
-                <input id="emp-logradouro" type="text" value={formEmpresa.endereco_logradouro} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_logradouro: e.target.value })} />
+                <input
+                  id="emp-logradouro"
+                  type="text"
+                  value={formEmpresa.endereco_logradouro}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_logradouro: e.target.value })}
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-numero">Número</label>
-                <input id="emp-numero" type="text" value={formEmpresa.endereco_numero} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_numero: e.target.value })} />
+                <input
+                  id="emp-numero"
+                  type="text"
+                  value={formEmpresa.endereco_numero}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_numero: e.target.value })}
+                />
               </div>
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-bairro">Bairro</label>
-                <input id="emp-bairro" type="text" value={formEmpresa.endereco_bairro} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_bairro: e.target.value })} />
+                <input
+                  id="emp-bairro"
+                  type="text"
+                  value={formEmpresa.endereco_bairro}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_bairro: e.target.value })}
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-complemento">Complemento</label>
-                <input id="emp-complemento" type="text" value={formEmpresa.endereco_complemento} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_complemento: e.target.value })} />
+                <input
+                  id="emp-complemento"
+                  type="text"
+                  value={formEmpresa.endereco_complemento}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_complemento: e.target.value })}
+                />
               </div>
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-cidade">Cidade</label>
-                <input id="emp-cidade" type="text" value={formEmpresa.endereco_cidade} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_cidade: e.target.value })} />
+                <input
+                  id="emp-cidade"
+                  type="text"
+                  value={formEmpresa.endereco_cidade}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_cidade: e.target.value })}
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-uf">UF</label>
-                <input id="emp-uf" type="text" maxLength={2} value={formEmpresa.endereco_uf} onChange={(e) => setFormEmpresa({ ...formEmpresa, endereco_uf: e.target.value.toUpperCase() })} />
+                <input
+                  id="emp-uf"
+                  type="text"
+                  maxLength={2}
+                  value={formEmpresa.endereco_uf}
+                  onChange={(e) =>
+                    setFormEmpresa({ ...formEmpresa, endereco_uf: e.target.value.toUpperCase() })
+                  }
+                />
               </div>
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-rep-nome">Representante legal</label>
-                <input id="emp-rep-nome" type="text" value={formEmpresa.representante_nome} onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_nome: e.target.value })} />
+                <input
+                  id="emp-rep-nome"
+                  type="text"
+                  value={formEmpresa.representante_nome}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_nome: e.target.value })}
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-rep-cpf">CPF do representante</label>
-                <input id="emp-rep-cpf" type="text" value={formEmpresa.representante_cpf} onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_cpf: e.target.value })} />
+                <input
+                  id="emp-rep-cpf"
+                  type="text"
+                  value={formEmpresa.representante_cpf}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_cpf: e.target.value })}
+                />
               </div>
             </div>
             <div className="linha-dupla">
               <div className="campo">
                 <label htmlFor="emp-rep-cargo">Cargo</label>
-                <input id="emp-rep-cargo" type="text" value={formEmpresa.representante_cargo} onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_cargo: e.target.value })} />
+                <input
+                  id="emp-rep-cargo"
+                  type="text"
+                  value={formEmpresa.representante_cargo}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_cargo: e.target.value })}
+                />
               </div>
               <div className="campo">
                 <label htmlFor="emp-rep-telefone">Telefone</label>
-                <input id="emp-rep-telefone" type="text" value={formEmpresa.representante_telefone} onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_telefone: e.target.value })} />
+                <input
+                  id="emp-rep-telefone"
+                  type="text"
+                  value={formEmpresa.representante_telefone}
+                  onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_telefone: e.target.value })}
+                />
               </div>
             </div>
             <div className="campo">
               <label htmlFor="emp-rep-email">E-mail do representante</label>
-              <input id="emp-rep-email" type="email" value={formEmpresa.representante_email} onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_email: e.target.value })} />
+              <input
+                id="emp-rep-email"
+                type="email"
+                value={formEmpresa.representante_email}
+                onChange={(e) => setFormEmpresa({ ...formEmpresa, representante_email: e.target.value })}
+              />
             </div>
 
             <div className="acoes-formulario">
               <button type="submit" className="botao primario" disabled={salvandoEmpresa}>
                 {salvandoEmpresa ? "Salvando..." : "Salvar dados"}
               </button>
-              <button type="button" className="botao fantasma" onClick={() => setEditandoEmpresa(false)}>Cancelar</button>
+              <button type="button" className="botao fantasma" onClick={() => setEditandoEmpresa(false)}>
+                Cancelar
+              </button>
             </div>
           </form>
         </div>
       )}
 
-      {!carregando && CATEGORIAS.map((cat) => {
-        const docsDaCategoria = documentos.filter((d) => d.categoria === cat.chave);
-        return (
-          <section key={cat.chave} style={{ marginBottom: 28 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h2 className="painel-grupo-titulo" style={{ margin: 0 }}>
-                {cat.rotulo} <span style={{ color: "var(--slate-dim)", fontWeight: 400 }}>({docsDaCategoria.length})</span>
-              </h2>
-              <button className="botao fantasma" onClick={() => setUploadCategoria(cat.chave)}>
-                <Upload size={13} strokeWidth={2.1} /> Adicionar
-              </button>
-            </div>
+      {!carregando &&
+        CATEGORIAS.map((cat) => {
+          const docsDaCategoria = documentos.filter((d) => d.categoria === cat.chave);
+          return (
+            <section key={cat.chave} style={{ marginBottom: 28 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <h2 className="painel-grupo-titulo" style={{ margin: 0 }}>
+                  {cat.rotulo}{" "}
+                  <span style={{ color: "var(--slate-dim)", fontWeight: 400 }}>
+                    ({docsDaCategoria.length})
+                  </span>
+                </h2>
+                <button className="botao fantasma" onClick={() => setUploadCategoria(cat.chave)}>
+                  <Upload size={13} strokeWidth={2.1} /> Adicionar
+                </button>
+              </div>
 
-            {docsDaCategoria.length === 0 && (
-              <p className="ajuda">Nenhum documento nessa categoria ainda.</p>
-            )}
+              {docsDaCategoria.length === 0 && (
+                <p className="ajuda">Nenhum documento nessa categoria ainda.</p>
+              )}
 
-            <div className="lista-criterios entrada-escalonada">
-              {docsDaCategoria.map((doc, indice) => {
-                const info = STATUS_INFO[doc.status] || STATUS_INFO.sem_data;
-                return (
-                  <div className="item-criterio" key={doc.id} style={{ "--i": indice }}>
-                    <div>
-                      <div className="nome-criterio">{doc.nome}</div>
-                      <div className="resumo-criterio">
-                        <Carimbo cor={info.cor}>{info.rotulo}</Carimbo>
-                        {doc.data_validade && <span style={{ marginLeft: 8 }}>validade: {formatarData(doc.data_validade)}</span>}
-                        {doc.data_emissao && <span style={{ marginLeft: 8 }}>emitido: {formatarData(doc.data_emissao)}</span>}
+              <div className="lista-criterios entrada-escalonada">
+                {docsDaCategoria.map((doc, indice) => {
+                  const info = STATUS_INFO[doc.status] || STATUS_INFO.sem_data;
+                  return (
+                    <div className="item-criterio" key={doc.id} style={{ "--i": indice }}>
+                      <div>
+                        <div className="nome-criterio">{doc.nome}</div>
+                        <div className="resumo-criterio">
+                          <Carimbo cor={info.cor}>{info.rotulo}</Carimbo>
+                          {doc.data_validade && (
+                            <span style={{ marginLeft: 8 }}>validade: {formatarData(doc.data_validade)}</span>
+                          )}
+                          {doc.data_emissao && (
+                            <span style={{ marginLeft: 8 }}>emitido: {formatarData(doc.data_emissao)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="acoes">
+                        <button
+                          className="botao fantasma"
+                          onClick={() =>
+                            api.baixarArquivoDocumento(doc.id).catch((err) => setErro(err.message))
+                          }
+                          title="Baixar"
+                        >
+                          <Download size={13} strokeWidth={2.1} />
+                        </button>
+                        <button
+                          className="botao fantasma"
+                          onClick={() => setDocumentoHistorico(doc)}
+                          title="Histórico"
+                        >
+                          <History size={13} strokeWidth={2.1} />
+                        </button>
+                        <button
+                          className="botao fantasma"
+                          onClick={() => setDocumentoSubstituindo(doc)}
+                          title="Substituir arquivo"
+                        >
+                          <Upload size={13} strokeWidth={2.1} />
+                        </button>
+                        <button className="botao perigo" onClick={() => apagar(doc)} title="Apagar">
+                          <Trash2 size={13} strokeWidth={2.1} />
+                        </button>
                       </div>
                     </div>
-                    <div className="acoes">
-                      <button className="botao fantasma" onClick={() => api.baixarArquivoDocumento(doc.id).catch((err) => setErro(err.message))} title="Baixar">
-                        <Download size={13} strokeWidth={2.1} />
-                      </button>
-                      <button className="botao fantasma" onClick={() => setDocumentoHistorico(doc)} title="Histórico">
-                        <History size={13} strokeWidth={2.1} />
-                      </button>
-                      <button className="botao fantasma" onClick={() => setDocumentoSubstituindo(doc)} title="Substituir arquivo">
-                        <Upload size={13} strokeWidth={2.1} />
-                      </button>
-                      <button className="botao perigo" onClick={() => apagar(doc)} title="Apagar">
-                        <Trash2 size={13} strokeWidth={2.1} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
 
       {!carregando && documentos.length === 0 && (
         <div className="estado-vazio">
           <FolderOpen strokeWidth={1.5} />
           <h3>Nenhum documento cadastrado ainda</h3>
-          <p>Use o botão "Adicionar" em qualquer categoria acima pra começar a centralizar suas certidões e documentos de habilitação.</p>
+          <p>
+            Use o botão "Adicionar" em qualquer categoria acima pra começar a centralizar suas certidões e
+            documentos de habilitação.
+          </p>
         </div>
       )}
 
@@ -562,14 +770,20 @@ export default function Documentos({ perfil }) {
         <PainelUpload
           categoriaInicial={uploadCategoria}
           aoFechar={() => setUploadCategoria(null)}
-          aoSalvar={() => { setUploadCategoria(null); carregar(); }}
+          aoSalvar={() => {
+            setUploadCategoria(null);
+            carregar();
+          }}
         />
       )}
       {documentoSubstituindo && (
         <PainelUpload
           documento={documentoSubstituindo}
           aoFechar={() => setDocumentoSubstituindo(null)}
-          aoSalvar={() => { setDocumentoSubstituindo(null); carregar(); }}
+          aoSalvar={() => {
+            setDocumentoSubstituindo(null);
+            carregar();
+          }}
         />
       )}
       {documentoHistorico && (

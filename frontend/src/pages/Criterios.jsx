@@ -1,5 +1,5 @@
+import { ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Plus, ListChecks, Pencil, Trash2 } from "lucide-react";
 import { api } from "../api";
 
 const CRITERIO_VAZIO = {
@@ -85,10 +85,15 @@ export default function Criterios() {
   }
 
   function resumoCriterio(c) {
-    const termos = c.palavra_obrigatoria.split(",").map((t) => t.trim()).filter(Boolean);
+    const termos = c.palavra_obrigatoria
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     const partes = [termos.length > 1 ? `termos: ${termos.join(" ou ")}` : `termo: "${termos[0]}"`];
     if (c.estados_permitidos) partes.push(`estados: ${c.estados_permitidos}`);
-    partes.push(`até ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(c.valor_maximo)}`);
+    partes.push(
+      `até ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(c.valor_maximo)}`
+    );
     if (c.exigir_dedicacao_exclusiva) partes.push("DEMO");
     partes.push(c.modalidades_permitidas ? `modalidade: ${c.modalidades_permitidas}` : "qualquer modalidade");
     return partes.join(" · ");
@@ -116,7 +121,11 @@ export default function Criterios() {
           {carregando && (
             <div className="lista-criterios">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="esqueleto-cartao" style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  key={i}
+                  className="esqueleto-cartao"
+                  style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+                >
                   <div style={{ flex: 1 }}>
                     <div className="esqueleto-linha media" />
                     <div className="esqueleto-linha larga" style={{ marginTop: 8 }} />
@@ -183,8 +192,8 @@ export default function Criterios() {
                 placeholder="Ex: apoio administrativo, auxiliar administrativo, assistente administrativo"
               />
               <span className="ajuda">
-                Separe variações por vírgula. A licitação passa se o objeto tiver <strong>pelo menos uma</strong> delas
-                — não precisa ter todas.
+                Separe variações por vírgula. A licitação passa se o objeto tiver{" "}
+                <strong>pelo menos uma</strong> delas — não precisa ter todas.
               </span>
             </div>
 
@@ -232,7 +241,9 @@ export default function Criterios() {
                 onChange={(e) => setForm({ ...form, estados_permitidos: e.target.value.toUpperCase() })}
                 placeholder="Ex: MA,PI,PA,TO,CE"
               />
-              <span className="ajuda">Siglas separadas por vírgula. Deixe em branco para aceitar qualquer estado.</span>
+              <span className="ajuda">
+                Siglas separadas por vírgula. Deixe em branco para aceitar qualquer estado.
+              </span>
             </div>
 
             <div className="campo-checkbox">
@@ -255,8 +266,8 @@ export default function Criterios() {
                 placeholder="Ex: Pregão, Dispensa, Credenciamento"
               />
               <span className="ajuda">
-                Trechos separados por vírgula (ex: "Pregão" aceita Eletrônico e Presencial).
-                Deixe em branco para aceitar qualquer modalidade.
+                Trechos separados por vírgula (ex: "Pregão" aceita Eletrônico e Presencial). Deixe em branco
+                para aceitar qualquer modalidade.
               </span>
             </div>
 

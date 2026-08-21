@@ -41,12 +41,10 @@ export default function TelaAutenticacao({ aoAutenticar }) {
       <div className="auth-lado-marca">
         <LogoCompleto />
         <p className="tagline">
-          Todo dia, uma leitura das novas licitações do PNCP — só as que
-          realmente batem com o seu negócio chegam até você.
+          Todo dia, uma leitura das novas licitações do PNCP — só as que realmente batem com o seu negócio
+          chegam até você.
         </p>
-        <div className="protocolo-exemplo">
-          PNCP-59949362000176-1-000051/2026
-        </div>
+        <div className="protocolo-exemplo">PNCP-59949362000176-1-000051/2026</div>
       </div>
 
       <div className="auth-lado-form">
@@ -55,8 +53,8 @@ export default function TelaAutenticacao({ aoAutenticar }) {
           {tokenConvite
             ? "Você foi convidado para entrar numa equipe. Complete seu cadastro abaixo."
             : modo === "login"
-            ? "Acesse seu painel de licitações filtradas."
-            : "Leva menos de um minuto para começar."}
+              ? "Acesse seu painel de licitações filtradas."
+              : "Leva menos de um minuto para começar."}
         </p>
 
         {erro && <div className="erro-msg">{erro}</div>}
@@ -107,7 +105,13 @@ export default function TelaAutenticacao({ aoAutenticar }) {
                 <button
                   type="button"
                   className="auth-troca"
-                  style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--slate)", textDecoration: "underline" }}
+                  style={{
+                    all: "unset",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    color: "var(--slate)",
+                    textDecoration: "underline",
+                  }}
                   onClick={() => setMostrarCampoConvite(true)}
                 >
                   Tenho um código de convite de equipe
@@ -137,12 +141,26 @@ export default function TelaAutenticacao({ aoAutenticar }) {
             {modo === "login" ? (
               <>
                 Ainda não tem conta?{" "}
-                <button onClick={() => { setModo("cadastro"); setErro(""); }}>Criar agora</button>
+                <button
+                  onClick={() => {
+                    setModo("cadastro");
+                    setErro("");
+                  }}
+                >
+                  Criar agora
+                </button>
               </>
             ) : (
               <>
                 Já tem conta?{" "}
-                <button onClick={() => { setModo("login"); setErro(""); }}>Entrar</button>
+                <button
+                  onClick={() => {
+                    setModo("login");
+                    setErro("");
+                  }}
+                >
+                  Entrar
+                </button>
               </>
             )}
           </div>

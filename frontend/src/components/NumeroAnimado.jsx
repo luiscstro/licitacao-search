@@ -25,7 +25,7 @@ export default function NumeroAnimado({ valor, duracao = 650, formatar }) {
     const inicio = performance.now();
     function passo(agora) {
       const t = Math.min(1, (agora - inicio) / duracao);
-      const facilitado = 1 - Math.pow(1 - t, 3);
+      const facilitado = 1 - (1 - t) ** 3;
       setExibido(Math.round(de + (para - de) * facilitado));
       if (t < 1) {
         quadro.current = requestAnimationFrame(passo);

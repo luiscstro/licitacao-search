@@ -6,16 +6,39 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "knip": "knip",
+    "depcruise": "depcruise src --config .dependency-cruiser.cjs",
+    "stryker": "stryker run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@sentry/react": "^10.70.0",
     "lucide-react": "^0.383.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.9",
+    "@playwright/test": "^1.62.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.5",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.1"
+    "@vitest/coverage-v8": "^4.1.11",
+    "dependency-cruiser": "^18.2.0",
+    "jsdom": "^30.0.1",
+    "knip": "^6.32.2",
+    "vite": "^5.4.1",
+    "vitest": "^4.1.11"
   }
 }

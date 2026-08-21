@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Mail } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 
 export default function Notificacoes({ perfil, aoAtualizarPerfil }) {
@@ -46,13 +46,17 @@ export default function Notificacoes({ perfil, aoAtualizarPerfil }) {
 
       <div className="card-formulario">
         <h2>
-          <Mail size={17} strokeWidth={2} style={{ verticalAlign: "-3px", marginRight: 8, color: "var(--selo-gold-deep)" }} />
+          <Mail
+            size={17}
+            strokeWidth={2}
+            style={{ verticalAlign: "-3px", marginRight: 8, color: "var(--selo-gold-deep)" }}
+          />
           Resumo diário por e-mail
         </h2>
         <p className="ajuda" style={{ marginBottom: 18 }}>
           Todo dia, depois da coleta de novas licitações, mandamos um e-mail pra {perfil?.email || "você"} com
-          as oportunidades que bateram com os critérios da sua empresa — órgão, valor, prazo e o motivo de cada uma
-          ter aparecido.
+          as oportunidades que bateram com os critérios da sua empresa — órgão, valor, prazo e o motivo de
+          cada uma ter aparecido.
         </p>
 
         <div className="campo-checkbox">

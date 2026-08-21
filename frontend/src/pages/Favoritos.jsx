@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
 
@@ -46,6 +46,7 @@ export default function Favoritos() {
       {carregando && (
         <div className="grade-licitacoes">
           {Array.from({ length: 4 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: placeholder de tamanho fixo, nunca reordenado
             <div key={i} className="esqueleto-cartao">
               <div className="esqueleto-linha curta" />
               <div className="esqueleto-linha media" />

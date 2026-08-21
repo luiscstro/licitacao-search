@@ -1,5 +1,5 @@
+import { Send, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { X, Send } from "lucide-react";
 import { api } from "../api";
 import { useFecharAnimado } from "../hooks/useFecharAnimado";
 
@@ -43,8 +43,13 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
 
   return (
     <div className={`painel-overlay ${saindo ? "saindo" : ""}`} onClick={fechar}>
-      <div className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <div
+        className={`painel-modal card-formulario ${saindo ? "saindo" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}
+        >
           <h2 style={{ marginBottom: 0 }}>Comentários da equipe</h2>
           <button
             className="botao fantasma"
@@ -56,11 +61,22 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
           </button>
         </div>
 
-        <div className="protocolo" style={{ marginBottom: 16 }}>{numeroControle}</div>
+        <div className="protocolo" style={{ marginBottom: 16 }}>
+          {numeroControle}
+        </div>
 
         {erro && <div className="erro-msg">{erro}</div>}
 
-        <div style={{ overflowY: "auto", flex: 1, marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            overflowY: "auto",
+            flex: 1,
+            marginBottom: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
           {carregando && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[0, 1].map((i) => (
@@ -77,8 +93,17 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
           {comentarios.map((c) => (
             <div key={c.id} style={{ borderBottom: "1px dashed var(--linha)", paddingBottom: 8 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>{c.autor_email}</div>
-              <div style={{ fontSize: 13.5, color: "var(--slate)", marginTop: 2, lineHeight: 1.5 }}>{c.texto}</div>
-              <div style={{ fontSize: 11, color: "var(--slate-dim)", marginTop: 4, fontFamily: "var(--fonte-mono)" }}>
+              <div style={{ fontSize: 13.5, color: "var(--slate)", marginTop: 2, lineHeight: 1.5 }}>
+                {c.texto}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--slate-dim)",
+                  marginTop: 4,
+                  fontFamily: "var(--fonte-mono)",
+                }}
+              >
                 {new Date(c.criado_em).toLocaleString("pt-BR")}
               </div>
             </div>
@@ -92,12 +117,22 @@ export default function PainelComentarios({ numeroControle, aoFechar }) {
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Escreva uma anotação..."
             style={{
-              flex: 1, fontFamily: "var(--fonte-ui)", fontSize: 14, padding: "10px 12px",
-              border: "1.5px solid var(--slate-line)", borderRadius: "var(--radius)",
+              flex: 1,
+              fontFamily: "var(--fonte-ui)",
+              fontSize: 14,
+              padding: "10px 12px",
+              border: "1.5px solid var(--slate-line)",
+              borderRadius: "var(--radius)",
             }}
           />
           <button type="submit" className="botao primario" disabled={enviando}>
-            {enviando ? "..." : <><Send size={14} strokeWidth={2.2} /> Enviar</>}
+            {enviando ? (
+              "..."
+            ) : (
+              <>
+                <Send size={14} strokeWidth={2.2} /> Enviar
+              </>
+            )}
           </button>
         </form>
       </div>
