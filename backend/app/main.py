@@ -8,6 +8,7 @@ Depois abra http://127.0.0.1:8000/docs
 """
 
 import io
+import os
 import uuid
 from collections import Counter
 from datetime import datetime
@@ -22,15 +23,27 @@ from sqlalchemy.orm import Session
 from . import auth, cnpj_utils, exportacao, models, schemas, scoring
 from .database import Base, engine, get_db
 from .observability import setup_observability
+from .security_headers import setup_security_headers
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Buscador de Licitações API", version="2.0")
 setup_observability(app)
+setup_security_headers(app)
+
+# Em produção, defina CORS_ORIGINS com os domínios reais do frontend,
+# separados por vírgula (ex: "https://licittraker.discloud.app"). Sem essa
+# variável, só os origins de desenvolvimento local são aceitos — nunca "*",
+# que combinado com allow_credentials=True faz o Starlette refletir
+# qualquer Origin de volta pro navegador.
+_origins_padrao = "http://localhost:5173,http://127.0.0.1:5173"
+CORS_ORIGINS = [
+    origem.strip() for origem in os.getenv("CORS_ORIGINS", _origins_padrao).split(",") if origem.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
