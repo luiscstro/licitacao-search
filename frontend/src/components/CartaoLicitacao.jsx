@@ -1,9 +1,9 @@
+import { ArrowUpRight, Clock, MapPin, MessageCircle, Star, Wallet } from "lucide-react";
 import { useState } from "react";
-import { Star, MapPin, Wallet, Clock, MessageCircle, ArrowUpRight } from "lucide-react";
+import { api } from "../api";
+import { diasAte, formatarValor, urgente } from "../utils/data";
 import Carimbo from "./Carimbo";
 import PainelComentarios from "./PainelComentarios";
-import { api } from "../api";
-import { formatarValor, diasAte, urgente } from "../utils/data";
 
 export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
   const [favoritada, setFavoritada] = useState(lic.favoritada);
@@ -50,9 +50,15 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
       </p>
 
       <div className="meta-linha">
-        <span><MapPin strokeWidth={2} /> {lic.cidade}/{lic.uf}</span>
-        <span><Wallet strokeWidth={2} /> {formatarValor(lic.valor_estimado)}</span>
-        <span><Clock strokeWidth={2} /> {diasAte(lic.data_encerramento_proposta)}</span>
+        <span>
+          <MapPin strokeWidth={2} /> {lic.cidade}/{lic.uf}
+        </span>
+        <span>
+          <Wallet strokeWidth={2} /> {formatarValor(lic.valor_estimado)}
+        </span>
+        <span>
+          <Clock strokeWidth={2} /> {diasAte(lic.data_encerramento_proposta)}
+        </span>
       </div>
 
       <div className="protocolo">{lic.numero_controle}</div>
@@ -69,7 +75,10 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
       </div>
 
       {comentariosAbertos && (
-        <PainelComentarios numeroControle={lic.numero_controle} aoFechar={() => setComentariosAbertos(false)} />
+        <PainelComentarios
+          numeroControle={lic.numero_controle}
+          aoFechar={() => setComentariosAbertos(false)}
+        />
       )}
     </div>
   );

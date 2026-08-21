@@ -20,7 +20,7 @@ async function requisicao(caminho, opcoes = {}) {
   const headers = {
     ...(opcoes.headers || {}),
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const resp = await fetch(`${API_BASE}${caminho}`, { ...opcoes, headers });
 

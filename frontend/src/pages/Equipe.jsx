@@ -1,5 +1,5 @@
+import { Check, Copy, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { UserPlus, Copy, Check } from "lucide-react";
 import { api } from "../api";
 import Carimbo from "../components/Carimbo";
 
@@ -59,9 +59,7 @@ export default function Equipe({ perfil }) {
         <div>
           <span className="eyebrow">Time</span>
           <h1>Minha equipe</h1>
-          <div className="contagem">
-            {carregando ? "carregando..." : empresa ? empresa.nome : ""}
-          </div>
+          <div className="contagem">{carregando ? "carregando..." : empresa ? empresa.nome : ""}</div>
         </div>
       </div>
 
@@ -89,8 +87,8 @@ export default function Equipe({ perfil }) {
             <div className="card-formulario">
               <h2>Convidar alguém para a equipe</h2>
               <p className="ajuda" style={{ marginBottom: 16 }}>
-                A pessoa convidada vai ver os mesmos critérios e licitações que você — ótimo
-                para trabalhar junto com colegas na mesma base.
+                A pessoa convidada vai ver os mesmos critérios e licitações que você — ótimo para trabalhar
+                junto com colegas na mesma base.
               </p>
 
               <form onSubmit={convidar}>
@@ -111,11 +109,19 @@ export default function Equipe({ perfil }) {
               </form>
 
               {linkGerado && (
-                <div className="sucesso-msg" style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div
+                  className="sucesso-msg"
+                  style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}
+                >
                   <div>Convite gerado! Envie esse link para a pessoa (por WhatsApp, e-mail etc):</div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <code style={{ fontSize: 12, wordBreak: "break-all" }}>{linkGerado}</code>
-                    <button type="button" className="botao fantasma" onClick={copiarLink} style={{ flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      className="botao fantasma"
+                      onClick={copiarLink}
+                      style={{ flexShrink: 0 }}
+                    >
                       {copiado ? <Check size={14} strokeWidth={2.4} /> : <Copy size={14} strokeWidth={2.1} />}
                       {copiado ? "Copiado" : "Copiar"}
                     </button>

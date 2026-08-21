@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
 

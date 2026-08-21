@@ -1,17 +1,27 @@
+import {
+  Bell,
+  ChevronDown,
+  HelpCircle,
+  LayoutGrid,
+  ListChecks,
+  LogOut,
+  Search,
+  Star,
+  Users2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Search, Star, ListChecks, Users2, LogOut, HelpCircle, ChevronDown, LayoutGrid, Bell } from "lucide-react";
 import { api } from "./api";
 import { LogoCompacto } from "./components/Logo";
-import TelaAutenticacao from "./pages/TelaAutenticacao";
-import Ferramentas from "./pages/Ferramentas";
-import Dashboard from "./pages/Dashboard";
-import Criterios from "./pages/Criterios";
-import Favoritos from "./pages/Favoritos";
-import Equipe from "./pages/Equipe";
-import Notificacoes from "./pages/Notificacoes";
-import Indicadores from "./pages/Indicadores";
-import PainelAlertas from "./components/PainelAlertas";
 import PainelAjuda from "./components/PainelAjuda";
+import PainelAlertas from "./components/PainelAlertas";
+import Criterios from "./pages/Criterios";
+import Dashboard from "./pages/Dashboard";
+import Equipe from "./pages/Equipe";
+import Favoritos from "./pages/Favoritos";
+import Ferramentas from "./pages/Ferramentas";
+import Indicadores from "./pages/Indicadores";
+import Notificacoes from "./pages/Notificacoes";
+import TelaAutenticacao from "./pages/TelaAutenticacao";
 
 const ITENS_NAV = [
   { id: "ferramentas", rotulo: "Ferramentas", Icone: LayoutGrid },
@@ -41,7 +51,10 @@ export default function App() {
 
   useEffect(() => {
     if (logado) {
-      api.meuPerfil().then(setPerfil).catch(() => {});
+      api
+        .meuPerfil()
+        .then(setPerfil)
+        .catch(() => {});
     }
   }, [logado]);
 
@@ -121,7 +134,9 @@ export default function App() {
               <div className="painel-flutuante painel-avatar">
                 <div className="painel-avatar-email">{perfil?.email}</div>
                 {perfil?.papel && (
-                  <div className="painel-avatar-papel">{perfil.papel === "owner" ? "Dono da conta" : "Membro"}</div>
+                  <div className="painel-avatar-papel">
+                    {perfil.papel === "owner" ? "Dono da conta" : "Membro"}
+                  </div>
                 )}
                 <button
                   className="painel-avatar-notificacoes"

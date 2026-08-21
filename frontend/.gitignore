@@ -1,0 +1,6 @@
+# Local dev tooling output — not part of the source tree.
+coverage/
+playwright-report/
+test-results/
+.stryker-tmp/
+reports/

@@ -1,6 +1,15 @@
 import {
-  Search, ListChecks, Star, Users2, MessageCircle,
-  Mail, BarChart3, Download, RefreshCw, ArrowRight, Clock,
+  ArrowRight,
+  BarChart3,
+  Clock,
+  Download,
+  ListChecks,
+  Mail,
+  MessageCircle,
+  RefreshCw,
+  Search,
+  Star,
+  Users2,
 } from "lucide-react";
 
 const GRUPOS = [
@@ -71,7 +80,12 @@ const GRUPOS = [
     titulo: "Em Desenvolvimento",
     destaque: true,
     cartoes: [
-      { Icone: RefreshCw, titulo: "Atualização Automática na Nuvem", descricao: "Coleta diária de novas licitações do PNCP rodando hospedada, sem depender do seu computador ligado." },
+      {
+        Icone: RefreshCw,
+        titulo: "Atualização Automática na Nuvem",
+        descricao:
+          "Coleta diária de novas licitações do PNCP rodando hospedada, sem depender do seu computador ligado.",
+      },
     ],
   },
 ];
@@ -86,7 +100,9 @@ export default function Ferramentas({ perfil, aoNavegar }) {
           <span className="eyebrow">Início</span>
           <h1>Nossas Ferramentas</h1>
           <div className="contagem">
-            {primeiroNome ? `Bem-vindo(a) de volta, ${primeiroNome}.` : "Tudo o que você precisa em um só lugar."}
+            {primeiroNome
+              ? `Bem-vindo(a) de volta, ${primeiroNome}.`
+              : "Tudo o que você precisa em um só lugar."}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
+import { ChevronDown, ChevronLeft, ChevronRight, Download, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Download, ChevronDown } from "lucide-react";
 import { api } from "../api";
 import CartaoLicitacao from "../components/CartaoLicitacao";
 
@@ -36,7 +36,10 @@ export default function Dashboard() {
   const refExportar = useRef(null);
 
   useEffect(() => {
-    api.listarCriterios().then(setCriterios).catch(() => {});
+    api
+      .listarCriterios()
+      .then(setCriterios)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -161,7 +164,13 @@ export default function Dashboard() {
             <Search
               size={16}
               strokeWidth={2}
-              style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--slate-dim)" }}
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--slate-dim)",
+              }}
             />
             <input
               type="text"
@@ -169,8 +178,12 @@ export default function Dashboard() {
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por palavra (funciona com ou sem critério selecionado)..."
               style={{
-                width: "100%", fontFamily: "var(--fonte-ui)", fontSize: 14, padding: "10px 12px 10px 36px",
-                border: "1.5px solid var(--slate-line)", borderRadius: "var(--radius)",
+                width: "100%",
+                fontFamily: "var(--fonte-ui)",
+                fontSize: 14,
+                padding: "10px 12px 10px 36px",
+                border: "1.5px solid var(--slate-line)",
+                borderRadius: "var(--radius)",
               }}
             />
           </div>
@@ -211,11 +224,22 @@ export default function Dashboard() {
             <div className="linha-dupla">
               <div className="campo">
                 <label>UF</label>
-                <input type="text" value={uf} onChange={(e) => setUf(e.target.value.toUpperCase())} placeholder="Ex: MA" maxLength={2} />
+                <input
+                  type="text"
+                  value={uf}
+                  onChange={(e) => setUf(e.target.value.toUpperCase())}
+                  placeholder="Ex: MA"
+                  maxLength={2}
+                />
               </div>
               <div className="campo">
                 <label>Órgão</label>
-                <input type="text" value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Nome do órgão" />
+                <input
+                  type="text"
+                  value={orgao}
+                  onChange={(e) => setOrgao(e.target.value)}
+                  placeholder="Nome do órgão"
+                />
               </div>
             </div>
             <div className="linha-dupla">
@@ -239,8 +263,12 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="acoes-formulario">
-              <button type="submit" className="botao primario">Aplicar filtros</button>
-              <button type="button" className="botao fantasma" onClick={limparFiltros}>Limpar tudo</button>
+              <button type="submit" className="botao primario">
+                Aplicar filtros
+              </button>
+              <button type="button" className="botao fantasma" onClick={limparFiltros}>
+                Limpar tudo
+              </button>
             </div>
           </div>
         )}
@@ -248,24 +276,30 @@ export default function Dashboard() {
 
       {erro && <div className="erro-msg">{erro}</div>}
 
-      {criterios.length === 0 && !busca && !temFiltroAvancadoAtivo && !carregando && licitacoes.length === 0 && (
-        <div className="estado-vazio">
-          <Search strokeWidth={1.5} />
-          <h3>Nenhum critério configurado ainda</h3>
-          <p>
-            Vá até "Meus critérios" no menu e configure o que você procura — ou use a busca
-            acima pra pesquisar livremente, sem precisar de critério.
-          </p>
-        </div>
-      )}
+      {criterios.length === 0 &&
+        !busca &&
+        !temFiltroAvancadoAtivo &&
+        !carregando &&
+        licitacoes.length === 0 && (
+          <div className="estado-vazio">
+            <Search strokeWidth={1.5} />
+            <h3>Nenhum critério configurado ainda</h3>
+            <p>
+              Vá até "Meus critérios" no menu e configure o que você procura — ou use a busca acima pra
+              pesquisar livremente, sem precisar de critério.
+            </p>
+          </div>
+        )}
 
-      {!carregando && licitacoes.length === 0 && (criterios.length > 0 || busca || temFiltroAvancadoAtivo) && (
-        <div className="estado-vazio">
-          <Search strokeWidth={1.5} />
-          <h3>Nenhuma licitação encontrada</h3>
-          <p>Tente ajustar a busca, os filtros, ou o critério selecionado.</p>
-        </div>
-      )}
+      {!carregando &&
+        licitacoes.length === 0 &&
+        (criterios.length > 0 || busca || temFiltroAvancadoAtivo) && (
+          <div className="estado-vazio">
+            <Search strokeWidth={1.5} />
+            <h3>Nenhuma licitação encontrada</h3>
+            <p>Tente ajustar a busca, os filtros, ou o critério selecionado.</p>
+          </div>
+        )}
 
       {carregando && <div className="carregando">Carregando licitações...</div>}
 
@@ -278,14 +312,30 @@ export default function Dashboard() {
           </div>
 
           {totalPaginas > 1 && (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 28 }}>
-              <button className="botao fantasma" disabled={pagina <= 1} onClick={() => irParaPagina(pagina - 1)}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 12,
+                marginTop: 28,
+              }}
+            >
+              <button
+                className="botao fantasma"
+                disabled={pagina <= 1}
+                onClick={() => irParaPagina(pagina - 1)}
+              >
                 <ChevronLeft size={15} strokeWidth={2.2} /> Anterior
               </button>
               <span style={{ fontFamily: "var(--fonte-mono)", fontSize: 13, color: "var(--slate)" }}>
                 página {pagina} de {totalPaginas}
               </span>
-              <button className="botao fantasma" disabled={pagina >= totalPaginas} onClick={() => irParaPagina(pagina + 1)}>
+              <button
+                className="botao fantasma"
+                disabled={pagina >= totalPaginas}
+                onClick={() => irParaPagina(pagina + 1)}
+              >
                 Próxima <ChevronRight size={15} strokeWidth={2.2} />
               </button>
             </div>
