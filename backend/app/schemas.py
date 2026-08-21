@@ -40,6 +40,42 @@ class EmpresaSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     nome: str
+    cnpj: str | None = None
+    inscricao_estadual: str | None = None
+    inscricao_municipal: str | None = None
+    endereco_logradouro: str | None = None
+    endereco_numero: str | None = None
+    endereco_complemento: str | None = None
+    endereco_bairro: str | None = None
+    endereco_cidade: str | None = None
+    endereco_uf: str | None = None
+    endereco_cep: str | None = None
+    representante_nome: str | None = None
+    representante_cpf: str | None = None
+    representante_cargo: str | None = None
+    representante_email: str | None = None
+    representante_telefone: str | None = None
+    situacao_cadastral: str | None = None
+    cnpj_sincronizado_em: datetime | None = None
+
+
+class EmpresaAtualizar(BaseModel):
+    nome: str | None = None
+    cnpj: str | None = None
+    inscricao_estadual: str | None = None
+    inscricao_municipal: str | None = None
+    endereco_logradouro: str | None = None
+    endereco_numero: str | None = None
+    endereco_complemento: str | None = None
+    endereco_bairro: str | None = None
+    endereco_cidade: str | None = None
+    endereco_uf: str | None = None
+    endereco_cep: str | None = None
+    representante_nome: str | None = None
+    representante_cpf: str | None = None
+    representante_cargo: str | None = None
+    representante_email: str | None = None
+    representante_telefone: str | None = None
 
 
 class Token(BaseModel):
@@ -124,6 +160,19 @@ class LicitacaoSaida(BaseModel):
     favoritada: bool = False
 
 
+# ---------- Pipeline (mini-CRM, compartilhado pela empresa) ----------
+
+
+class OportunidadeSaida(LicitacaoSaida):
+    status: str = "monitorando"
+    status_atualizado_em: datetime | None = None
+    atualizado_por_email: str = ""
+
+
+class AtualizarStatusEntrada(BaseModel):
+    status: str
+
+
 # ---------- Licitações paginadas ----------
 
 
@@ -178,3 +227,57 @@ class EstatisticasSaida(BaseModel):
     por_uf: list[ContagemPorChave]
     por_modalidade: list[ContagemPorChave]
     por_mes: list[ContagemPorChave]
+
+
+# ---------- Documentos de habilitação / certidões ----------
+
+
+class DocumentoAtualizar(BaseModel):
+    nome: str | None = None
+    categoria: str | None = None
+    data_emissao: datetime | None = None
+    data_validade: datetime | None = None
+
+
+class DocumentoSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    categoria: str
+    nome: str
+    nome_arquivo_original: str
+    tamanho_bytes: int
+    data_emissao: datetime | None = None
+    data_validade: datetime | None = None
+    status: str = "sem_data"
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_por_email: str = ""
+
+
+class DocumentoHistoricoSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nome: str
+    nome_arquivo_original: str
+    data_emissao: datetime | None = None
+    data_validade: datetime | None = None
+    substituido_em: datetime
+    substituido_por_email: str = ""
+
+
+class ContagemPorStatus(BaseModel):
+    status: str
+    quantidade: int
+
+
+class AtividadeRecente(BaseModel):
+    nome: str
+    categoria: str
+    atualizado_em: datetime
+    atualizado_por_email: str = ""
+
+
+class IndicadoresDocumentosSaida(BaseModel):
+    por_status: list[ContagemPorStatus]
+    por_categoria: list[ContagemPorChave]
+    ultimas_atualizacoes: list[AtividadeRecente]

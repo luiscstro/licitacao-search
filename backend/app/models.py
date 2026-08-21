@@ -29,6 +29,26 @@ class Empresa(Base):
     nome = Column(String, nullable=False)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
+    # Cadastro único (dados fiscais), preenchido pelo owner ou sincronizado
+    # automaticamente via CNPJ (dados abertos da Receita Federal).
+    cnpj = Column(String, nullable=True)
+    inscricao_estadual = Column(String, nullable=True)
+    inscricao_municipal = Column(String, nullable=True)
+    endereco_logradouro = Column(String, nullable=True)
+    endereco_numero = Column(String, nullable=True)
+    endereco_complemento = Column(String, nullable=True)
+    endereco_bairro = Column(String, nullable=True)
+    endereco_cidade = Column(String, nullable=True)
+    endereco_uf = Column(String, nullable=True)
+    endereco_cep = Column(String, nullable=True)
+    representante_nome = Column(String, nullable=True)
+    representante_cpf = Column(String, nullable=True)
+    representante_cargo = Column(String, nullable=True)
+    representante_email = Column(String, nullable=True)
+    representante_telefone = Column(String, nullable=True)
+    situacao_cadastral = Column(String, nullable=True)
+    cnpj_sincronizado_em = Column(DateTime, nullable=True)
+
     usuarios = relationship("User", back_populates="empresa")
     criterios = relationship("Criterio", back_populates="empresa", cascade="all, delete-orphan")
 
@@ -154,3 +174,82 @@ class Comentario(Base):
 
     usuario = relationship("User", back_populates="comentarios")
     licitacao = relationship("Licitacao", back_populates="comentarios")
+
+
+class Oportunidade(Base):
+    """Pipeline de acompanhamento (mini-CRM) — diferente de Favorito, é
+    compartilhada pela empresa toda (não por usuário), igual Criterio.
+    Criada automaticamente quando qualquer usuário da empresa favorita uma
+    licitação; segue existindo mesmo se o favorito original for removido."""
+
+    __tablename__ = "oportunidades"
+    __table_args__ = (UniqueConstraint("empresa_id", "numero_controle", name="uq_oportunidade_por_empresa"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
+    numero_controle = Column(String, ForeignKey("licitacoes.numero_controle"), nullable=False)
+    status = Column(String, default="monitorando")
+    status_atualizado_em = Column(DateTime, default=datetime.utcnow)
+    atualizado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    criado_em = Column(DateTime, default=datetime.utcnow)
+
+    atualizado_por = relationship("User")
+
+
+CATEGORIAS_DOCUMENTO = ["juridica", "fiscal", "trabalhista", "economico_financeira", "tecnica", "outra"]
+LIMIARES_ALERTA_VENCIMENTO = [30, 15, 7, 1, 0]
+
+
+class DocumentoHabilitacao(Base):
+    """Documento de habilitação ou certidão, num único modelo flexível —
+    a empresa cadastra qualquer nome (não é uma lista travada de tipos).
+    Certidões são só documentos com data_validade preenchida."""
+
+    __tablename__ = "documentos_habilitacao"
+
+    id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
+    categoria = Column(String, nullable=False, default="outra")
+    nome = Column(String, nullable=False)
+    nome_arquivo_original = Column(String, nullable=False)
+    caminho_arquivo = Column(String, nullable=False)
+    tamanho_bytes = Column(Integer, default=0)
+    data_emissao = Column(DateTime, nullable=True)
+    data_validade = Column(DateTime, nullable=True)
+    enviado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    atualizado_em = Column(DateTime, default=datetime.utcnow)
+    ultimo_alerta_dias = Column(Integer, nullable=True)
+
+    enviado_por = relationship("User")
+
+    @property
+    def status(self) -> str:
+        if not self.data_validade:
+            return "sem_data"
+        dias_restantes = (self.data_validade - datetime.utcnow()).days
+        if dias_restantes < 0:
+            return "vencida"
+        if dias_restantes <= 30:
+            return "vencendo"
+        return "valida"
+
+
+class DocumentoHistorico(Base):
+    """Versão anterior de um DocumentoHabilitacao, arquivada quando o
+    arquivo é substituído — histórico simples de emissões."""
+
+    __tablename__ = "documentos_historico"
+
+    id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
+    documento_id = Column(Integer, ForeignKey("documentos_habilitacao.id"), nullable=True)
+    nome = Column(String, nullable=False)
+    nome_arquivo_original = Column(String, nullable=False)
+    caminho_arquivo = Column(String, nullable=False)
+    data_emissao = Column(DateTime, nullable=True)
+    data_validade = Column(DateTime, nullable=True)
+    substituido_em = Column(DateTime, default=datetime.utcnow)
+    substituido_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    substituido_por = relationship("User")

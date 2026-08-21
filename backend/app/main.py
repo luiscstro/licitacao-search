@@ -8,15 +8,18 @@ Depois abra http://127.0.0.1:8000/docs
 """
 
 import io
+import uuid
 from collections import Counter
+from datetime import datetime
+from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from . import auth, exportacao, models, schemas, scoring
+from . import auth, cnpj_utils, exportacao, models, schemas, scoring
 from .database import Base, engine, get_db
 from .observability import setup_observability
 
@@ -123,6 +126,65 @@ def atualizar_preferencias(
 @app.get("/equipe/empresa", response_model=schemas.EmpresaSaida)
 def minha_empresa(db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
     return db.query(models.Empresa).filter(models.Empresa.id == usuario.empresa_id).first()
+
+
+@app.put("/equipe/empresa", response_model=schemas.EmpresaSaida)
+def atualizar_empresa(
+    dados: schemas.EmpresaAtualizar,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(exigir_owner),
+):
+    empresa = db.query(models.Empresa).filter(models.Empresa.id == usuario.empresa_id).first()
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(empresa, campo, valor)
+    db.commit()
+    db.refresh(empresa)
+    return empresa
+
+
+@app.post("/equipe/empresa/sincronizar-cnpj", response_model=schemas.EmpresaSaida)
+def sincronizar_cnpj(
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(exigir_owner),
+):
+    """Busca dados cadastrais via APIs públicas de dados abertos do CNPJ
+    (BrasilAPI, com fallback pra MinhaReceita) — sem login, sem CAPTCHA.
+    Só preenche os campos de endereço que estiverem vazios, pra não
+    sobrescrever edição manual do usuário; situação cadastral sempre
+    atualiza."""
+    empresa = db.query(models.Empresa).filter(models.Empresa.id == usuario.empresa_id).first()
+    if not empresa.cnpj:
+        raise HTTPException(status_code=400, detail="Cadastre o CNPJ da empresa antes de sincronizar")
+
+    try:
+        dados = cnpj_utils.buscar_dados_cnpj(empresa.cnpj)
+    except ValueError as erro:
+        raise HTTPException(status_code=400, detail=str(erro))
+
+    if dados is None:
+        raise HTTPException(
+            status_code=502, detail="Não foi possível consultar o CNPJ agora — tente de novo em instantes"
+        )
+
+    empresa.situacao_cadastral = dados["situacao_cadastral"]
+    empresa.cnpj_sincronizado_em = datetime.utcnow()
+    if not empresa.nome and dados.get("razao_social"):
+        empresa.nome = dados["razao_social"]
+    for campo in [
+        "endereco_logradouro",
+        "endereco_numero",
+        "endereco_complemento",
+        "endereco_bairro",
+        "endereco_cidade",
+        "endereco_uf",
+        "endereco_cep",
+    ]:
+        if not getattr(empresa, campo) and dados.get(campo):
+            setattr(empresa, campo, dados[campo])
+
+    db.commit()
+    db.refresh(empresa)
+    return empresa
 
 
 @app.get("/equipe/membros", response_model=list[schemas.MembroEquipeSaida])
@@ -457,7 +519,23 @@ def favoritar(
         )
         .first()
     )
+
+    # Favoritar (por qualquer pessoa da empresa) coloca a licitação no
+    # pipeline compartilhado, se ainda não estiver lá. Desfavoritar NÃO
+    # tira do pipeline — ver DELETE /pipeline/{numero_controle}.
+    ja_esta_no_pipeline = (
+        db.query(models.Oportunidade)
+        .filter(
+            models.Oportunidade.empresa_id == usuario.empresa_id,
+            models.Oportunidade.numero_controle == dados.numero_controle,
+        )
+        .first()
+    )
+    if not ja_esta_no_pipeline:
+        db.add(models.Oportunidade(empresa_id=usuario.empresa_id, numero_controle=dados.numero_controle))
+
     if ja_existe:
+        db.commit()
         return {"ok": True, "ja_era_favorito": True}
 
     db.add(models.Favorito(user_id=usuario.id, numero_controle=dados.numero_controle))
@@ -492,6 +570,94 @@ def listar_favoritos(db: Session = Depends(get_db), usuario: models.User = Depen
             saida.favoritada = True
             resultado.append(saida)
     return resultado
+
+
+# ============================================================
+# Pipeline (mini-CRM, compartilhado pela empresa)
+# ============================================================
+
+STATUS_VALIDOS = ["monitorando", "analisando", "proposta_enviada", "ganhou", "perdeu"]
+
+
+@app.get("/pipeline", response_model=list[schemas.OportunidadeSaida])
+def listar_pipeline(db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
+    oportunidades = (
+        db.query(models.Oportunidade).filter(models.Oportunidade.empresa_id == usuario.empresa_id).all()
+    )
+
+    resultado = []
+    for oportunidade in oportunidades:
+        licitacao = (
+            db.query(models.Licitacao)
+            .filter(models.Licitacao.numero_controle == oportunidade.numero_controle)
+            .first()
+        )
+        if not licitacao:
+            continue
+        saida = schemas.OportunidadeSaida.model_validate(licitacao)
+        saida.status = oportunidade.status
+        saida.status_atualizado_em = oportunidade.status_atualizado_em
+        saida.atualizado_por_email = oportunidade.atualizado_por.email if oportunidade.atualizado_por else ""
+        resultado.append(saida)
+
+    resultado.sort(key=lambda o: o.status_atualizado_em, reverse=True)
+    return resultado
+
+
+@app.put("/pipeline", response_model=schemas.OportunidadeSaida)
+def atualizar_status_pipeline(
+    numero_controle: str,
+    dados: schemas.AtualizarStatusEntrada,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    if dados.status not in STATUS_VALIDOS:
+        raise HTTPException(
+            status_code=400, detail=f"Status inválido. Use um de: {', '.join(STATUS_VALIDOS)}"
+        )
+
+    oportunidade = (
+        db.query(models.Oportunidade)
+        .filter(
+            models.Oportunidade.empresa_id == usuario.empresa_id,
+            models.Oportunidade.numero_controle == numero_controle,
+        )
+        .first()
+    )
+    if not oportunidade:
+        raise HTTPException(status_code=404, detail="Essa licitação não está no pipeline")
+
+    oportunidade.status = dados.status
+    oportunidade.status_atualizado_em = datetime.utcnow()
+    oportunidade.atualizado_por_id = usuario.id
+    db.commit()
+    db.refresh(oportunidade)
+
+    licitacao = db.query(models.Licitacao).filter(models.Licitacao.numero_controle == numero_controle).first()
+    saida = schemas.OportunidadeSaida.model_validate(licitacao)
+    saida.status = oportunidade.status
+    saida.status_atualizado_em = oportunidade.status_atualizado_em
+    saida.atualizado_por_email = usuario.email
+    return saida
+
+
+@app.delete("/pipeline", status_code=204)
+def remover_do_pipeline(
+    numero_controle: str,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    oportunidade = (
+        db.query(models.Oportunidade)
+        .filter(
+            models.Oportunidade.empresa_id == usuario.empresa_id,
+            models.Oportunidade.numero_controle == numero_controle,
+        )
+        .first()
+    )
+    if oportunidade:
+        db.delete(oportunidade)
+        db.commit()
 
 
 # ============================================================
@@ -540,6 +706,277 @@ def criar_comentario(
     saida = schemas.ComentarioSaida.model_validate(comentario)
     saida.autor_email = usuario.email
     return saida
+
+
+# ============================================================
+# Documentos de habilitação / certidões
+# ============================================================
+
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+EXTENSOES_PERMITIDAS = {".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"}
+TAMANHO_MAXIMO_BYTES = 15 * 1024 * 1024
+
+
+def _parse_data_opcional(valor: str | None) -> datetime | None:
+    if not valor:
+        return None
+    try:
+        return datetime.fromisoformat(valor)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Data inválida, use o formato AAAA-MM-DD")
+
+
+async def _salvar_arquivo(empresa_id: int, arquivo: UploadFile) -> tuple[str, str, int]:
+    extensao = Path(arquivo.filename or "").suffix.lower()
+    if extensao not in EXTENSOES_PERMITIDAS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Extensão não permitida. Use: {', '.join(sorted(EXTENSOES_PERMITIDAS))}",
+        )
+
+    conteudo = await arquivo.read()
+    if len(conteudo) > TAMANHO_MAXIMO_BYTES:
+        raise HTTPException(status_code=400, detail="Arquivo muito grande (máximo 15MB)")
+
+    pasta_empresa = UPLOAD_DIR / str(empresa_id) / "documentos"
+    pasta_empresa.mkdir(parents=True, exist_ok=True)
+    nome_salvo = f"{uuid.uuid4().hex}{extensao}"
+    caminho = pasta_empresa / nome_salvo
+    caminho.write_bytes(conteudo)
+
+    return str(caminho), (arquivo.filename or nome_salvo), len(conteudo)
+
+
+def _serializar_documento(documento: models.DocumentoHabilitacao) -> schemas.DocumentoSaida:
+    saida = schemas.DocumentoSaida.model_validate(documento)
+    saida.status = documento.status
+    saida.enviado_por_email = documento.enviado_por.email if documento.enviado_por else ""
+    return saida
+
+
+@app.get("/documentos/indicadores", response_model=schemas.IndicadoresDocumentosSaida)
+def indicadores_documentos(db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
+    documentos = (
+        db.query(models.DocumentoHabilitacao)
+        .filter(models.DocumentoHabilitacao.empresa_id == usuario.empresa_id)
+        .all()
+    )
+
+    contagem_status = Counter(d.status for d in documentos)
+    contagem_categoria = Counter(d.categoria for d in documentos)
+
+    recentes = sorted(documentos, key=lambda d: d.atualizado_em, reverse=True)[:8]
+    ultimas_atualizacoes = [
+        schemas.AtividadeRecente(
+            nome=d.nome,
+            categoria=d.categoria,
+            atualizado_em=d.atualizado_em,
+            atualizado_por_email=d.enviado_por.email if d.enviado_por else "",
+        )
+        for d in recentes
+    ]
+
+    return schemas.IndicadoresDocumentosSaida(
+        por_status=[schemas.ContagemPorStatus(status=k, quantidade=v) for k, v in contagem_status.items()],
+        por_categoria=[
+            schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in contagem_categoria.items()
+        ],
+        ultimas_atualizacoes=ultimas_atualizacoes,
+    )
+
+
+@app.get("/documentos/historico", response_model=list[schemas.DocumentoHistoricoSaida])
+def historico_documento(
+    documento_id: int | None = None,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    query = db.query(models.DocumentoHistorico).filter(
+        models.DocumentoHistorico.empresa_id == usuario.empresa_id
+    )
+    if documento_id is not None:
+        query = query.filter(models.DocumentoHistorico.documento_id == documento_id)
+    registros = query.order_by(models.DocumentoHistorico.substituido_em.desc()).all()
+
+    saida = []
+    for r in registros:
+        item = schemas.DocumentoHistoricoSaida.model_validate(r)
+        item.substituido_por_email = r.substituido_por.email if r.substituido_por else ""
+        saida.append(item)
+    return saida
+
+
+@app.get("/documentos", response_model=list[schemas.DocumentoSaida])
+def listar_documentos(
+    categoria: str | None = None,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    query = db.query(models.DocumentoHabilitacao).filter(
+        models.DocumentoHabilitacao.empresa_id == usuario.empresa_id
+    )
+    if categoria:
+        query = query.filter(models.DocumentoHabilitacao.categoria == categoria)
+    documentos = query.order_by(models.DocumentoHabilitacao.nome).all()
+    return [_serializar_documento(d) for d in documentos]
+
+
+@app.post("/documentos", response_model=schemas.DocumentoSaida, status_code=201)
+async def criar_documento(
+    file: UploadFile = File(...),
+    categoria: str = Form(...),
+    nome: str = Form(...),
+    data_emissao: str | None = Form(None),
+    data_validade: str | None = Form(None),
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    if categoria not in models.CATEGORIAS_DOCUMENTO:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Categoria inválida. Use uma de: {', '.join(models.CATEGORIAS_DOCUMENTO)}",
+        )
+
+    caminho, nome_original, tamanho = await _salvar_arquivo(usuario.empresa_id, file)
+
+    documento = models.DocumentoHabilitacao(
+        empresa_id=usuario.empresa_id,
+        categoria=categoria,
+        nome=nome,
+        nome_arquivo_original=nome_original,
+        caminho_arquivo=caminho,
+        tamanho_bytes=tamanho,
+        data_emissao=_parse_data_opcional(data_emissao),
+        data_validade=_parse_data_opcional(data_validade),
+        enviado_por_id=usuario.id,
+    )
+    db.add(documento)
+    db.commit()
+    db.refresh(documento)
+    return _serializar_documento(documento)
+
+
+@app.put("/documentos/{documento_id}", response_model=schemas.DocumentoSaida)
+def atualizar_documento(
+    documento_id: int,
+    dados: schemas.DocumentoAtualizar,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    documento = (
+        db.query(models.DocumentoHabilitacao)
+        .filter(
+            models.DocumentoHabilitacao.id == documento_id,
+            models.DocumentoHabilitacao.empresa_id == usuario.empresa_id,
+        )
+        .first()
+    )
+    if not documento:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    campos = dados.model_dump(exclude_unset=True)
+    if "categoria" in campos and campos["categoria"] not in models.CATEGORIAS_DOCUMENTO:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Categoria inválida. Use uma de: {', '.join(models.CATEGORIAS_DOCUMENTO)}",
+        )
+    for campo, valor in campos.items():
+        setattr(documento, campo, valor)
+    documento.atualizado_em = datetime.utcnow()
+    db.commit()
+    db.refresh(documento)
+    return _serializar_documento(documento)
+
+
+@app.post("/documentos/{documento_id}/substituir", response_model=schemas.DocumentoSaida)
+async def substituir_documento(
+    documento_id: int,
+    file: UploadFile = File(...),
+    data_emissao: str | None = Form(None),
+    data_validade: str | None = Form(None),
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    documento = (
+        db.query(models.DocumentoHabilitacao)
+        .filter(
+            models.DocumentoHabilitacao.id == documento_id,
+            models.DocumentoHabilitacao.empresa_id == usuario.empresa_id,
+        )
+        .first()
+    )
+    if not documento:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    db.add(
+        models.DocumentoHistorico(
+            empresa_id=usuario.empresa_id,
+            documento_id=documento.id,
+            nome=documento.nome,
+            nome_arquivo_original=documento.nome_arquivo_original,
+            caminho_arquivo=documento.caminho_arquivo,
+            data_emissao=documento.data_emissao,
+            data_validade=documento.data_validade,
+            substituido_por_id=usuario.id,
+        )
+    )
+
+    caminho, nome_original, tamanho = await _salvar_arquivo(usuario.empresa_id, file)
+    documento.caminho_arquivo = caminho
+    documento.nome_arquivo_original = nome_original
+    documento.tamanho_bytes = tamanho
+    if data_emissao is not None:
+        documento.data_emissao = _parse_data_opcional(data_emissao)
+    if data_validade is not None:
+        documento.data_validade = _parse_data_opcional(data_validade)
+    documento.enviado_por_id = usuario.id
+    documento.ultimo_alerta_dias = None
+    documento.atualizado_em = datetime.utcnow()
+    db.commit()
+    db.refresh(documento)
+    return _serializar_documento(documento)
+
+
+@app.get("/documentos/{documento_id}/arquivo")
+def baixar_documento(
+    documento_id: int,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    documento = (
+        db.query(models.DocumentoHabilitacao)
+        .filter(
+            models.DocumentoHabilitacao.id == documento_id,
+            models.DocumentoHabilitacao.empresa_id == usuario.empresa_id,
+        )
+        .first()
+    )
+    if not documento or not Path(documento.caminho_arquivo).exists():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    return FileResponse(documento.caminho_arquivo, filename=documento.nome_arquivo_original)
+
+
+@app.delete("/documentos/{documento_id}", status_code=204)
+def remover_documento(
+    documento_id: int,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    documento = (
+        db.query(models.DocumentoHabilitacao)
+        .filter(
+            models.DocumentoHabilitacao.id == documento_id,
+            models.DocumentoHabilitacao.empresa_id == usuario.empresa_id,
+        )
+        .first()
+    )
+    if not documento:
+        return
+    caminho = Path(documento.caminho_arquivo)
+    if caminho.exists():
+        caminho.unlink()
+    db.delete(documento)
+    db.commit()
 
 
 @app.get("/")

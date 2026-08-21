@@ -8,6 +8,8 @@ dist/
 log_coleta.txt
 log_coletor.txt
 log_notificacoes.txt
+backend/uploads/
+.claude/
 
 # Backend dev tooling artifacts (ruff/pytest/mutmut)
 backend/.venv/
