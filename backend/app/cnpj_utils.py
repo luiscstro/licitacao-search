@@ -7,6 +7,7 @@ abertos que a Receita publica mensalmente.
 """
 
 import re
+
 import requests
 
 TIMEOUT_SEGUNDOS = 8

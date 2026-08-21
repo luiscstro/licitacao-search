@@ -16,16 +16,31 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
 CABECALHOS = [
-    "Órgão", "Cidade", "UF", "Objeto", "Valor estimado (R$)", "Modalidade",
-    "Encerramento da proposta", "Link do edital", "Pontuação", "Motivos",
+    "Órgão",
+    "Cidade",
+    "UF",
+    "Objeto",
+    "Valor estimado (R$)",
+    "Modalidade",
+    "Encerramento da proposta",
+    "Link do edital",
+    "Pontuação",
+    "Motivos",
 ]
 
 
 def _linha(lic) -> list:
     return [
-        lic.orgao or "", lic.cidade or "", lic.uf or "", lic.objeto or "",
-        lic.valor_estimado or 0, lic.modalidade or "", lic.data_encerramento_proposta or "",
-        lic.link_edital or "", lic.score, " | ".join(lic.motivos or []),
+        lic.orgao or "",
+        lic.cidade or "",
+        lic.uf or "",
+        lic.objeto or "",
+        lic.valor_estimado or 0,
+        lic.modalidade or "",
+        lic.data_encerramento_proposta or "",
+        lic.link_edital or "",
+        lic.score,
+        " | ".join(lic.motivos or []),
     ]
 
 

@@ -20,8 +20,8 @@ Como usar:
 import sys
 from datetime import datetime
 
+from app import email_utils, models
 from app.database import SessionLocal
-from app import models, email_utils
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
@@ -31,15 +31,21 @@ if hasattr(sys.stdout, "reconfigure"):
 def limiar_cruzado(dias_restantes: int) -> int | None:
     """Acha o maior limiar em LIMIARES_ALERTA_VENCIMENTO que já foi
     cruzado (dias_restantes <= limiar). None se nenhum foi cruzado ainda."""
-    limiares_cruzados = [l for l in models.LIMIARES_ALERTA_VENCIMENTO if dias_restantes <= l]
+    limiares_cruzados = [limiar for limiar in models.LIMIARES_ALERTA_VENCIMENTO if dias_restantes <= limiar]
     return max(limiares_cruzados) if limiares_cruzados else None
 
 
-def montar_itens_para_empresa(db, empresa: models.Empresa) -> tuple[list[dict], list[models.DocumentoHabilitacao]]:
-    documentos = db.query(models.DocumentoHabilitacao).filter(
-        models.DocumentoHabilitacao.empresa_id == empresa.id,
-        models.DocumentoHabilitacao.data_validade.isnot(None),
-    ).all()
+def montar_itens_para_empresa(
+    db, empresa: models.Empresa
+) -> tuple[list[dict], list[models.DocumentoHabilitacao]]:
+    documentos = (
+        db.query(models.DocumentoHabilitacao)
+        .filter(
+            models.DocumentoHabilitacao.empresa_id == empresa.id,
+            models.DocumentoHabilitacao.data_validade.isnot(None),
+        )
+        .all()
+    )
 
     itens, documentos_a_marcar = [], []
     hoje = datetime.utcnow()
@@ -52,11 +58,13 @@ def montar_itens_para_empresa(db, empresa: models.Empresa) -> tuple[list[dict], 
         if documento.ultimo_alerta_dias is not None and limiar >= documento.ultimo_alerta_dias:
             continue  # já notificou esse limiar (ou um mais cedo) antes
 
-        itens.append({
-            "nome": documento.nome,
-            "categoria": documento.categoria,
-            "dias_restantes": dias_restantes,
-        })
+        itens.append(
+            {
+                "nome": documento.nome,
+                "categoria": documento.categoria,
+                "dias_restantes": dias_restantes,
+            }
+        )
         documento.ultimo_alerta_dias = limiar
         documentos_a_marcar.append(documento)
 
@@ -81,11 +89,15 @@ def main():
             if not itens:
                 continue
 
-            usuarios = db.query(models.User).filter(
-                models.User.empresa_id == empresa.id,
-                models.User.ativo == True,  # noqa: E712
-                models.User.receber_notificacoes == True,  # noqa: E712
-            ).all()
+            usuarios = (
+                db.query(models.User)
+                .filter(
+                    models.User.empresa_id == empresa.id,
+                    models.User.ativo == True,  # noqa: E712
+                    models.User.receber_notificacoes == True,  # noqa: E712
+                )
+                .all()
+            )
 
             if not usuarios:
                 db.commit()  # ainda assim marca os limiares, pra não reprocessar todo dia

@@ -15,10 +15,8 @@ Modelos do banco de dados.
 
 import secrets
 from datetime import datetime
-from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text,
-    UniqueConstraint
-)
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -74,6 +72,7 @@ class User(Base):
 
 class ConviteEquipe(Base):
     """Token que um 'owner' gera pra convidar alguém a entrar na empresa dele."""
+
     __tablename__ = "convites_equipe"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -89,6 +88,7 @@ class Criterio(Base):
     Um conjunto de filtros configurado pela empresa (compartilhado pela
     equipe toda — não é individual por usuário).
     """
+
     __tablename__ = "criterios"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -114,6 +114,7 @@ class Criterio(Base):
 
 class Licitacao(Base):
     """Base compartilhada de licitações coletadas do PNCP — global."""
+
     __tablename__ = "licitacoes"
 
     numero_controle = Column(String, primary_key=True)
@@ -180,6 +181,7 @@ class Oportunidade(Base):
     compartilhada pela empresa toda (não por usuário), igual Criterio.
     Criada automaticamente quando qualquer usuário da empresa favorita uma
     licitação; segue existindo mesmo se o favorito original for removido."""
+
     __tablename__ = "oportunidades"
     __table_args__ = (UniqueConstraint("empresa_id", "numero_controle", name="uq_oportunidade_por_empresa"),)
 
@@ -202,6 +204,7 @@ class DocumentoHabilitacao(Base):
     """Documento de habilitação ou certidão, num único modelo flexível —
     a empresa cadastra qualquer nome (não é uma lista travada de tipos).
     Certidões são só documentos com data_validade preenchida."""
+
     __tablename__ = "documentos_habilitacao"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -235,6 +238,7 @@ class DocumentoHabilitacao(Base):
 class DocumentoHistorico(Base):
     """Versão anterior de um DocumentoHabilitacao, arquivada quando o
     arquivo é substituído — histórico simples de emissões."""
+
     __tablename__ = "documentos_historico"
 
     id = Column(Integer, primary_key=True, index=True)
