@@ -1,0 +1,14 @@
+# Dev-only tooling — not needed to run the app in production.
+# Install with: pip install -r requirements-dev.txt
+-r requirements.txt
+
+ruff
+pytest
+pytest-cov
+httpx
+import-linter
+
+# Pinned to 2.4.5: mutmut 3.x refuses to run at all on native Windows
+# ("please use WSL" — see https://github.com/boxed/mutmut/issues/397).
+# 2.4.5 runs fine natively and still reads config from pyproject.toml.
+mutmut==2.4.5

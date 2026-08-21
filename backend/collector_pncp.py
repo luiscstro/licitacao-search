@@ -26,8 +26,8 @@ from datetime import date, timedelta
 import requests
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, engine, Base
 from app import models
+from app.database import Base, SessionLocal, engine
 from app.scoring import montar_texto_busca, montar_texto_busca_objeto
 
 # No Windows, quando a saída é redirecionada pra um arquivo (ex: "> log.txt"),
@@ -61,7 +61,7 @@ MODALIDADES = {
     7: "Pregão - Presencial",
     8: "Dispensa de Licitação",
     10: "Manifestação de Interesse",
-    12: "Credenciamento",              # geralmente aparece como "Chamamento Público" na prática
+    12: "Credenciamento",  # geralmente aparece como "Chamamento Público" na prática
     # 9: "Inexigibilidade",            # desativado por ora: raro pro seu tipo de negócio
     # 11: "Pré-qualificação",          # desativado por ora: raro
     # 13: "Leilão - Presencial",
@@ -76,7 +76,9 @@ ESTADOS_COBERTOS = ["MA", "PI", "PA", "TO", "CE"]  # só usado se BUSCAR_BRASIL_
 
 JANELA_DIAS = 60
 BASE_URL = "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta"
-TAMANHO_PAGINA = 50  # esse endpoint específico rejeita valores maiores (testado: 100 dá "Tamanho de página inválido")
+TAMANHO_PAGINA = (
+    50  # esse endpoint específico rejeita valores maiores (testado: 100 dá "Tamanho de página inválido")
+)
 PAUSA_ENTRE_REQUISICOES = 1.0
 MAX_TENTATIVAS = 6
 ESPERA_INICIAL_RETRY = 5
@@ -88,10 +90,13 @@ class ErroRequisicaoInvalida(Exception):
     """Erro 400 — a combinação de parâmetros foi rejeitada pelo PNCP.
     Diferente de RuntimeError (falha de rede/instabilidade), esse erro
     não adianta tentar de novo do mesmo jeito — precisa mudar a estratégia."""
+
     pass
 
 
-def buscar_pagina(session: requests.Session, modalidade: int, data_final: str, pagina: int, uf: str | None) -> dict:
+def buscar_pagina(
+    session: requests.Session, modalidade: int, data_final: str, pagina: int, uf: str | None
+) -> dict:
     params = {
         "dataFinal": data_final,
         "codigoModalidadeContratacao": modalidade,
@@ -117,7 +122,9 @@ def buscar_pagina(session: requests.Session, modalidade: int, data_final: str, p
         if resp.status_code == 400:
             # Erro do CLIENTE (parâmetros rejeitados) — tentar de novo do
             # mesmo jeito não resolve. Mostra o motivo e desiste dessa combinação.
-            print(f"  ✗ Requisição rejeitada (400) pra modalidade={modalidade}, uf={uf or 'BRASIL'}: {resp.text[:300]}")
+            print(
+                f"  ✗ Requisição rejeitada (400) pra modalidade={modalidade}, uf={uf or 'BRASIL'}: {resp.text[:300]}"
+            )
             raise ErroRequisicaoInvalida(resp.text)
 
         if resp.status_code == 429:
@@ -179,13 +186,39 @@ def _coletar_por_uf(session: requests.Session, codigo_modalidade: int, data_fina
 # Todos os estados + DF — usado como fallback quando a consulta nacional
 # (sem uf) é rejeitada pelo PNCP para alguma modalidade específica.
 TODOS_OS_ESTADOS = [
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
-    "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
-    "SP", "SE", "TO",
+    "AC",
+    "AL",
+    "AP",
+    "AM",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MT",
+    "MS",
+    "MG",
+    "PA",
+    "PB",
+    "PR",
+    "PE",
+    "PI",
+    "RJ",
+    "RN",
+    "RS",
+    "RO",
+    "RR",
+    "SC",
+    "SP",
+    "SE",
+    "TO",
 ]
 
 
-def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_modalidade: str, data_final: str) -> dict:
+def coletar_modalidade(
+    session: requests.Session, codigo_modalidade: int, nome_modalidade: str, data_final: str
+) -> dict:
     """Tenta coletar Brasil inteiro numa passada só (mais rápido). Se o
     PNCP rejeitar essa combinação pra essa modalidade específica (erro 400),
     cai automaticamente para buscar estado por estado, sem travar o resto
@@ -217,10 +250,14 @@ def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_m
         except ErroRequisicaoInvalida:
             print(f"  ↳ Brasil inteiro não é aceito pra {rotulo}. Buscando estado por estado em vez disso...")
         except RuntimeError as erro:
-            print(f"  ⚠ {rotulo} falhou no meio da coleta nacional (parou na página {pagina}, "
-                  f"{len(encontradas_brasil)} itens coletados até aqui): {erro}")
-            print(f"  ↳ Isso deixaria dados incompletos — caindo pra busca estado por estado "
-                  f"pra completar o que faltou, em vez de aceitar um resultado parcial.")
+            print(
+                f"  ⚠ {rotulo} falhou no meio da coleta nacional (parou na página {pagina}, "
+                f"{len(encontradas_brasil)} itens coletados até aqui): {erro}"
+            )
+            print(
+                "  ↳ Isso deixaria dados incompletos — caindo pra busca estado por estado "
+                "pra completar o que faltou, em vez de aceitar um resultado parcial."
+            )
             falhou_no_meio = True
 
     # Fallback: estado por estado (ou comportamento padrão se
@@ -242,7 +279,9 @@ def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_m
                 parciais = {}
             encontradas.update(parciais)
             time.sleep(PAUSA_ENTRE_REQUISICOES)
-        print(f"  -> Recuperação completa: {len(encontradas)} itens ao todo (incluindo os {len(encontradas_brasil)} de antes da falha)")
+        print(
+            f"  -> Recuperação completa: {len(encontradas)} itens ao todo (incluindo os {len(encontradas_brasil)} de antes da falha)"
+        )
         return encontradas
 
     # Teste rápido: se o primeiro estado também for rejeitado com o mesmo
@@ -252,7 +291,9 @@ def coletar_modalidade(session: requests.Session, codigo_modalidade: int, nome_m
     try:
         primeiro_resultado = _coletar_por_uf(session, codigo_modalidade, data_final, estados[0])
     except ErroRequisicaoInvalida as erro:
-        print(f"  ✗ {rotulo} também falhou no primeiro estado testado ({estados[0]}) com o mesmo tipo de erro.")
+        print(
+            f"  ✗ {rotulo} também falhou no primeiro estado testado ({estados[0]}) com o mesmo tipo de erro."
+        )
         print(f"    Provavelmente não é um problema de UF — desistindo dessa modalidade. Detalhe: {erro}")
         return {}
 
@@ -275,6 +316,7 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
     o que garante que, mesmo se o script cair no meio (erro inesperado,
     falta de luz, etc), o que já foi coletado com sucesso não se perde."""
     from datetime import datetime
+
     agora = datetime.utcnow()
 
     for numero_controle, c in contratacoes.items():
@@ -283,7 +325,11 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
         cnpj = orgao_info.get("cnpj")
         ano = c.get("anoCompra")
         sequencial = c.get("sequencialCompra")
-        link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}" if cnpj and ano and sequencial else ""
+        link = (
+            f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
+            if cnpj and ano and sequencial
+            else ""
+        )
 
         objeto = c.get("objetoCompra", "")
         orgao_nome = orgao_info.get("razaosocial", "—")
@@ -292,9 +338,9 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
         texto_busca = montar_texto_busca(objeto, orgao_nome, cidade, info_complementar)
         texto_busca_objeto = montar_texto_busca_objeto(objeto, info_complementar)
 
-        existente = db.query(models.Licitacao).filter(
-            models.Licitacao.numero_controle == numero_controle
-        ).first()
+        existente = (
+            db.query(models.Licitacao).filter(models.Licitacao.numero_controle == numero_controle).first()
+        )
 
         if existente:
             existente.orgao = orgao_nome
@@ -312,24 +358,26 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
             existente.ultima_vez_vista = agora
             existente.ativa = True
         else:
-            db.add(models.Licitacao(
-                numero_controle=numero_controle,
-                orgao=orgao_nome,
-                cidade=cidade,
-                uf=unidade.get("ufSigla", "—"),
-                objeto=objeto,
-                informacao_complementar=info_complementar,
-                valor_estimado=c.get("valorTotalEstimado") or 0,
-                modalidade=c.get("modalidadeNome", "—"),
-                data_abertura_proposta=c.get("dataAberturaProposta"),
-                data_encerramento_proposta=c.get("dataEncerramentoProposta"),
-                link_edital=link,
-                texto_busca=texto_busca,
-                texto_busca_objeto=texto_busca_objeto,
-                primeira_vez_vista=agora,
-                ultima_vez_vista=agora,
-                ativa=True,
-            ))
+            db.add(
+                models.Licitacao(
+                    numero_controle=numero_controle,
+                    orgao=orgao_nome,
+                    cidade=cidade,
+                    uf=unidade.get("ufSigla", "—"),
+                    objeto=objeto,
+                    informacao_complementar=info_complementar,
+                    valor_estimado=c.get("valorTotalEstimado") or 0,
+                    modalidade=c.get("modalidadeNome", "—"),
+                    data_abertura_proposta=c.get("dataAberturaProposta"),
+                    data_encerramento_proposta=c.get("dataEncerramentoProposta"),
+                    link_edital=link,
+                    texto_busca=texto_busca,
+                    texto_busca_objeto=texto_busca_objeto,
+                    primeira_vez_vista=agora,
+                    ultima_vez_vista=agora,
+                    ativa=True,
+                )
+            )
 
     db.commit()
 
@@ -353,11 +401,13 @@ def main():
     Base.metadata.create_all(bind=engine)
 
     session = requests.Session()
-    session.headers.update({
-        "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    })
+    session.headers.update(
+        {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        }
+    )
 
     data_final = (date.today() + timedelta(days=JANELA_DIAS)).strftime("%Y%m%d")
     db = SessionLocal()
@@ -380,7 +430,9 @@ def main():
             print(f"  -> {nome}: {len(parciais)} itens salvos (acumulado: {len(todos_ids_vistos)})\n")
 
         duracao_min = (time.time() - inicio) / 60
-        print(f"\nTotal de contratações únicas coletadas: {len(todos_ids_vistos)} (em {duracao_min:.1f} minutos)")
+        print(
+            f"\nTotal de contratações únicas coletadas: {len(todos_ids_vistos)} (em {duracao_min:.1f} minutos)"
+        )
 
         marcadas = marcar_inativas(db, todos_ids_vistos)
         print(f"Licitações marcadas como inativas (sumiram desde a última coleta): {marcadas}")

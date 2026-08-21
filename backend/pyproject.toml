@@ -1,0 +1,73 @@
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "uploads",
+]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: isort, UP: pyupgrade.
+select = ["E", "F", "I", "UP", "W"]
+ignore = [
+    # E712 (`== True` / `== False`): the codebase compares SQLAlchemy boolean
+    # columns this way on purpose (`Model.campo == True`) — `is True` doesn't
+    # work in SQL expression context, so this is correct, not sloppy.
+    "E712",
+    # E501 (line too long): pervasive across the codebase in inline HTML
+    # email templates, verbose Portuguese log/print messages, and chained
+    # SQLAlchemy filters — a deliberate readability choice in those spots,
+    # not a real bug, and not worth reflowing dozens of pre-existing lines
+    # (some in main.py, which this task intentionally leaves untouched
+    # except for the observability wiring).
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Portuguese identifiers throughout are intentional (domain language of the
+# project), so nothing extra is silenced here beyond the top-level ignores.
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/__init__.py",
+]
+
+# ---------------------------------------------------------------------------
+
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "database must not depend on main"
+type = "forbidden"
+source_modules = ["app.database"]
+forbidden_modules = ["app.main"]
+
+[[tool.importlinter.contracts]]
+name = "scoring and email_utils are independent"
+type = "independence"
+modules = ["app.scoring", "app.email_utils"]
+
+# ---------------------------------------------------------------------------
+
+[tool.mutmut]
+# Scoped small on purpose: mutmut mutates whole files, so we point it only at
+# the modules that are pure logic with real unit-test coverage —
+# app/scoring.py (the whole filter/scoring engine) and app/auth.py (hash_senha,
+# verificar_senha, criar_token — plus usuario_atual, exercised indirectly by
+# tests/test_auth.py). main.py is FastAPI route glue and not worth mutating yet.
+paths_to_mutate = "app/scoring.py,app/auth.py"
+tests_dir = "tests/"
+runner = "python -m pytest -x -q"

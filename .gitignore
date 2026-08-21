@@ -8,3 +8,15 @@ dist/
 log_coleta.txt
 log_coletor.txt
 log_notificacoes.txt
+
+# Backend dev tooling artifacts (ruff/pytest/mutmut)
+backend/.venv/
+backend/venv/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mutmut-cache
+mutants/
+.import_linter_cache/

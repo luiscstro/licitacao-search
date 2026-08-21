@@ -6,12 +6,11 @@ sem precisar mandar email+senha em toda requisição).
 
 import os
 from datetime import datetime, timedelta
-from typing import Optional
 
 import bcrypt
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from . import models
@@ -56,7 +55,7 @@ def usuario_atual(token: str = Depends(oauth2_scheme), db: Session = Depends(get
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: Optional[str] = payload.get("sub")
+        email: str | None = payload.get("sub")
         if email is None:
             raise excecao_credenciais
     except JWTError:

@@ -4,17 +4,17 @@ FastAPI usa isso pra validar automaticamente e gerar a documentação (/docs).
 """
 
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, EmailStr, ConfigDict
 
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 # ---------- Usuário / Empresa / Equipe ----------
+
 
 class UsuarioCriar(BaseModel):
     email: EmailStr
     senha: str
-    nome_empresa: Optional[str] = None
-    token_convite: Optional[str] = None  # se vier, entra numa empresa já existente
+    nome_empresa: str | None = None
+    token_convite: str | None = None  # se vier, entra numa empresa já existente
 
 
 class UsuarioLogin(BaseModel):
@@ -33,7 +33,7 @@ class UsuarioSaida(BaseModel):
 
 
 class PreferenciasAtualizar(BaseModel):
-    receber_notificacoes: Optional[bool] = None
+    receber_notificacoes: bool | None = None
 
 
 class EmpresaSaida(BaseModel):
@@ -70,6 +70,7 @@ class MembroEquipeSaida(BaseModel):
 
 # ---------- Critério ----------
 
+
 class CriterioBase(BaseModel):
     nome: str = "Meu critério"
     palavra_obrigatoria: str
@@ -86,15 +87,15 @@ class CriterioCriar(CriterioBase):
 
 
 class CriterioAtualizar(BaseModel):
-    nome: Optional[str] = None
-    palavra_obrigatoria: Optional[str] = None
-    palavras_bonus: Optional[str] = None
-    valor_minimo: Optional[float] = None
-    valor_maximo: Optional[float] = None
-    estados_permitidos: Optional[str] = None
-    exigir_dedicacao_exclusiva: Optional[bool] = None
-    modalidades_permitidas: Optional[str] = None
-    ativo: Optional[bool] = None
+    nome: str | None = None
+    palavra_obrigatoria: str | None = None
+    palavras_bonus: str | None = None
+    valor_minimo: float | None = None
+    valor_maximo: float | None = None
+    estados_permitidos: str | None = None
+    exigir_dedicacao_exclusiva: bool | None = None
+    modalidades_permitidas: str | None = None
+    ativo: bool | None = None
 
 
 class CriterioSaida(CriterioBase):
@@ -106,16 +107,17 @@ class CriterioSaida(CriterioBase):
 
 # ---------- Licitação (resultado filtrado/buscado) ----------
 
+
 class LicitacaoSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     numero_controle: str
     orgao: str
-    cidade: Optional[str]
-    uf: Optional[str]
+    cidade: str | None
+    uf: str | None
     objeto: str
     valor_estimado: float
-    modalidade: Optional[str]
-    data_encerramento_proposta: Optional[str]
+    modalidade: str | None
+    data_encerramento_proposta: str | None
     link_edital: str
     score: float = 0
     motivos: list[str] = []
@@ -123,6 +125,7 @@ class LicitacaoSaida(BaseModel):
 
 
 # ---------- Licitações paginadas ----------
+
 
 class LicitacoesPaginadas(BaseModel):
     total: int
@@ -133,6 +136,7 @@ class LicitacoesPaginadas(BaseModel):
 
 
 # ---------- Favoritos ----------
+
 
 class FavoritoCriar(BaseModel):
     numero_controle: str
@@ -145,6 +149,7 @@ class FavoritoSaida(BaseModel):
 
 
 # ---------- Comentários ----------
+
 
 class ComentarioCriar(BaseModel):
     numero_controle: str
@@ -160,6 +165,7 @@ class ComentarioSaida(BaseModel):
 
 
 # ---------- Estatísticas (gráficos do dashboard) ----------
+
 
 class ContagemPorChave(BaseModel):
     chave: str

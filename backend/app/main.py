@@ -10,18 +10,20 @@ Depois abra http://127.0.0.1:8000/docs
 import io
 from collections import Counter
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from . import models, schemas, auth, scoring, exportacao
-from .database import engine, get_db, Base
+from . import auth, exportacao, models, schemas, scoring
+from .database import Base, engine, get_db
+from .observability import setup_observability
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Buscador de Licitações API", version="2.0")
+setup_observability(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,6 +44,7 @@ def exigir_owner(usuario: models.User = Depends(auth.usuario_atual)) -> models.U
 # Autenticação / Empresa / Equipe
 # ============================================================
 
+
 @app.post("/auth/registrar", response_model=schemas.UsuarioSaida, status_code=201)
 def registrar(dados: schemas.UsuarioCriar, db: Session = Depends(get_db)):
     ja_existe = db.query(models.User).filter(models.User.email == dados.email).first()
@@ -50,10 +53,14 @@ def registrar(dados: schemas.UsuarioCriar, db: Session = Depends(get_db)):
 
     if dados.token_convite:
         # Entrando numa empresa já existente via convite
-        convite = db.query(models.ConviteEquipe).filter(
-            models.ConviteEquipe.token == dados.token_convite,
-            models.ConviteEquipe.usado == False,  # noqa: E712
-        ).first()
+        convite = (
+            db.query(models.ConviteEquipe)
+            .filter(
+                models.ConviteEquipe.token == dados.token_convite,
+                models.ConviteEquipe.usado == False,  # noqa: E712
+            )
+            .first()
+        )
         if not convite:
             raise HTTPException(status_code=400, detail="Convite inválido ou já utilizado")
 
@@ -143,6 +150,7 @@ def convidar_membro(
 # Critérios (agora compartilhados pela empresa/equipe toda)
 # ============================================================
 
+
 @app.get("/criterios", response_model=list[schemas.CriterioSaida])
 def listar_criterios(db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
     return db.query(models.Criterio).filter(models.Criterio.empresa_id == usuario.empresa_id).all()
@@ -168,9 +176,11 @@ def atualizar_criterio(
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
-    criterio = db.query(models.Criterio).filter(
-        models.Criterio.id == criterio_id, models.Criterio.empresa_id == usuario.empresa_id
-    ).first()
+    criterio = (
+        db.query(models.Criterio)
+        .filter(models.Criterio.id == criterio_id, models.Criterio.empresa_id == usuario.empresa_id)
+        .first()
+    )
     if not criterio:
         raise HTTPException(status_code=404, detail="Critério não encontrado")
     for campo, valor in dados.model_dump(exclude_unset=True).items():
@@ -186,9 +196,11 @@ def deletar_criterio(
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
-    criterio = db.query(models.Criterio).filter(
-        models.Criterio.id == criterio_id, models.Criterio.empresa_id == usuario.empresa_id
-    ).first()
+    criterio = (
+        db.query(models.Criterio)
+        .filter(models.Criterio.id == criterio_id, models.Criterio.empresa_id == usuario.empresa_id)
+        .first()
+    )
     if not criterio:
         raise HTTPException(status_code=404, detail="Critério não encontrado")
     db.delete(criterio)
@@ -198,6 +210,7 @@ def deletar_criterio(
 # ============================================================
 # Licitações — filtro por critério + busca avançada (as duas combinam)
 # ============================================================
+
 
 def _buscar_licitacoes_pontuadas(
     db: Session,
@@ -229,7 +242,9 @@ def _buscar_licitacoes_pontuadas(
     (SQL) antes de qualquer processamento em Python — isso é o que mantém
     a busca rápida mesmo com uma base nacional bem maior.
     """
-    tem_filtro_avancado = any([busca, uf, orgao, valor_min is not None, valor_max is not None, data_de, data_ate])
+    tem_filtro_avancado = any(
+        [busca, uf, orgao, valor_min is not None, valor_max is not None, data_de, data_ate]
+    )
 
     # -------- Pré-filtro no banco (rápido, mesmo com muitos registros) --------
     query = db.query(models.Licitacao).filter(models.Licitacao.ativa == True)  # noqa: E712
@@ -252,8 +267,8 @@ def _buscar_licitacoes_pontuadas(
     candidatas = query.all()
 
     favoritos_ids = {
-        f.numero_controle for f in
-        db.query(models.Favorito).filter(models.Favorito.user_id == usuario.id).all()
+        f.numero_controle
+        for f in db.query(models.Favorito).filter(models.Favorito.user_id == usuario.id).all()
     }
 
     resultados = {}
@@ -261,7 +276,8 @@ def _buscar_licitacoes_pontuadas(
     if criterio_id is not None or (criterio_id is None and not tem_filtro_avancado):
         # Modo "critérios salvos" ("Licitações pra você")
         query_criterios = db.query(models.Criterio).filter(
-            models.Criterio.empresa_id == usuario.empresa_id, models.Criterio.ativo == True  # noqa: E712
+            models.Criterio.empresa_id == usuario.empresa_id,
+            models.Criterio.ativo == True,  # noqa: E712
         )
         if criterio_id is not None:
             query_criterios = query_criterios.filter(models.Criterio.id == criterio_id)
@@ -320,7 +336,7 @@ def listar_licitacoes(
     total = len(todos_ordenados)
     total_paginas = max(1, (total + por_pagina - 1) // por_pagina)
     inicio = (pagina - 1) * por_pagina
-    pagina_de_itens = todos_ordenados[inicio:inicio + por_pagina]
+    pagina_de_itens = todos_ordenados[inicio : inicio + por_pagina]
 
     return schemas.LicitacoesPaginadas(
         total=total,
@@ -410,7 +426,9 @@ def estatisticas_licitacoes(
         total=len(itens),
         valor_total_estimado=sum(i.valor_estimado or 0 for i in itens),
         por_uf=[schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in contagem_uf.most_common(15)],
-        por_modalidade=[schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in contagem_modalidade.most_common(10)],
+        por_modalidade=[
+            schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in contagem_modalidade.most_common(10)
+        ],
         por_mes=[schemas.ContagemPorChave(chave=k, quantidade=v) for k, v in sorted(contagem_mes.items())],
     )
 
@@ -419,15 +437,26 @@ def estatisticas_licitacoes(
 # Favoritos
 # ============================================================
 
+
 @app.post("/favoritos", status_code=201)
-def favoritar(dados: schemas.FavoritoCriar, db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
-    licitacao = db.query(models.Licitacao).filter(models.Licitacao.numero_controle == dados.numero_controle).first()
+def favoritar(
+    dados: schemas.FavoritoCriar,
+    db: Session = Depends(get_db),
+    usuario: models.User = Depends(auth.usuario_atual),
+):
+    licitacao = (
+        db.query(models.Licitacao).filter(models.Licitacao.numero_controle == dados.numero_controle).first()
+    )
     if not licitacao:
         raise HTTPException(status_code=404, detail="Licitação não encontrada")
 
-    ja_existe = db.query(models.Favorito).filter(
-        models.Favorito.user_id == usuario.id, models.Favorito.numero_controle == dados.numero_controle
-    ).first()
+    ja_existe = (
+        db.query(models.Favorito)
+        .filter(
+            models.Favorito.user_id == usuario.id, models.Favorito.numero_controle == dados.numero_controle
+        )
+        .first()
+    )
     if ja_existe:
         return {"ok": True, "ja_era_favorito": True}
 
@@ -437,10 +466,14 @@ def favoritar(dados: schemas.FavoritoCriar, db: Session = Depends(get_db), usuar
 
 
 @app.delete("/favoritos", status_code=204)
-def desfavoritar(numero_controle: str, db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
-    fav = db.query(models.Favorito).filter(
-        models.Favorito.user_id == usuario.id, models.Favorito.numero_controle == numero_controle
-    ).first()
+def desfavoritar(
+    numero_controle: str, db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)
+):
+    fav = (
+        db.query(models.Favorito)
+        .filter(models.Favorito.user_id == usuario.id, models.Favorito.numero_controle == numero_controle)
+        .first()
+    )
     if fav:
         db.delete(fav)
         db.commit()
@@ -451,7 +484,9 @@ def listar_favoritos(db: Session = Depends(get_db), usuario: models.User = Depen
     favoritos = db.query(models.Favorito).filter(models.Favorito.user_id == usuario.id).all()
     resultado = []
     for fav in favoritos:
-        licitacao = db.query(models.Licitacao).filter(models.Licitacao.numero_controle == fav.numero_controle).first()
+        licitacao = (
+            db.query(models.Licitacao).filter(models.Licitacao.numero_controle == fav.numero_controle).first()
+        )
         if licitacao:
             saida = schemas.LicitacaoSaida.model_validate(licitacao)
             saida.favoritada = True
@@ -463,11 +498,17 @@ def listar_favoritos(db: Session = Depends(get_db), usuario: models.User = Depen
 # Comentários
 # ============================================================
 
+
 @app.get("/comentarios", response_model=list[schemas.ComentarioSaida])
-def listar_comentarios(numero_controle: str, db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
-    comentarios = db.query(models.Comentario).filter(
-        models.Comentario.numero_controle == numero_controle
-    ).order_by(models.Comentario.criado_em.desc()).all()
+def listar_comentarios(
+    numero_controle: str, db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)
+):
+    comentarios = (
+        db.query(models.Comentario)
+        .filter(models.Comentario.numero_controle == numero_controle)
+        .order_by(models.Comentario.criado_em.desc())
+        .all()
+    )
 
     saida = []
     for c in comentarios:
@@ -483,11 +524,15 @@ def criar_comentario(
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
-    licitacao = db.query(models.Licitacao).filter(models.Licitacao.numero_controle == dados.numero_controle).first()
+    licitacao = (
+        db.query(models.Licitacao).filter(models.Licitacao.numero_controle == dados.numero_controle).first()
+    )
     if not licitacao:
         raise HTTPException(status_code=404, detail="Licitação não encontrada")
 
-    comentario = models.Comentario(user_id=usuario.id, numero_controle=dados.numero_controle, texto=dados.texto)
+    comentario = models.Comentario(
+        user_id=usuario.id, numero_controle=dados.numero_controle, texto=dados.texto
+    )
     db.add(comentario)
     db.commit()
     db.refresh(comentario)

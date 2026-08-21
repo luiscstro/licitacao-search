@@ -15,10 +15,8 @@ Modelos do banco de dados.
 
 import secrets
 from datetime import datetime
-from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text,
-    UniqueConstraint
-)
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -54,6 +52,7 @@ class User(Base):
 
 class ConviteEquipe(Base):
     """Token que um 'owner' gera pra convidar alguém a entrar na empresa dele."""
+
     __tablename__ = "convites_equipe"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -69,6 +68,7 @@ class Criterio(Base):
     Um conjunto de filtros configurado pela empresa (compartilhado pela
     equipe toda — não é individual por usuário).
     """
+
     __tablename__ = "criterios"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -94,6 +94,7 @@ class Criterio(Base):
 
 class Licitacao(Base):
     """Base compartilhada de licitações coletadas do PNCP — global."""
+
     __tablename__ = "licitacoes"
 
     numero_controle = Column(String, primary_key=True)
