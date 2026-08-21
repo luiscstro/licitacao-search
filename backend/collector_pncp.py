@@ -335,6 +335,8 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
         orgao_nome = orgao_info.get("razaosocial", "—")
         cidade = unidade.get("municipioNome", "—")
         info_complementar = c.get("informacaoComplementar", "") or ""
+        codigo_unidade = unidade.get("codigoUnidade", "") or ""
+        numero_compra = c.get("numeroCompra", "") or ""
         texto_busca = montar_texto_busca(objeto, orgao_nome, cidade, info_complementar)
         texto_busca_objeto = montar_texto_busca_objeto(objeto, info_complementar)
 
@@ -355,6 +357,8 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
             existente.link_edital = link
             existente.texto_busca = texto_busca
             existente.texto_busca_objeto = texto_busca_objeto
+            existente.codigo_unidade = codigo_unidade
+            existente.numero_compra = numero_compra
             existente.ultima_vez_vista = agora
             existente.ativa = True
         else:
@@ -373,6 +377,8 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
                     link_edital=link,
                     texto_busca=texto_busca,
                     texto_busca_objeto=texto_busca_objeto,
+                    codigo_unidade=codigo_unidade,
+                    numero_compra=numero_compra,
                     primeira_vez_vista=agora,
                     ultima_vez_vista=agora,
                     ativa=True,

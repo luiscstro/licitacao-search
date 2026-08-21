@@ -22,6 +22,8 @@ export default function Dashboard() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [uf, setUf] = useState("");
   const [orgao, setOrgao] = useState("");
+  const [uasg, setUasg] = useState("");
+  const [numeroPregao, setNumeroPregao] = useState("");
   const [valorMin, setValorMin] = useState("");
   const [valorMax, setValorMax] = useState("");
   const [dataDe, setDataDe] = useState("");
@@ -56,6 +58,8 @@ export default function Dashboard() {
       busca: busca.trim() || undefined,
       uf: uf || undefined,
       orgao: orgao || undefined,
+      uasg: uasg || undefined,
+      numeroPregao: numeroPregao || undefined,
       valorMin: valorMin || undefined,
       valorMax: valorMax || undefined,
       dataDe: dataDe || undefined,
@@ -109,6 +113,8 @@ export default function Dashboard() {
     setBusca("");
     setUf("");
     setOrgao("");
+    setUasg("");
+    setNumeroPregao("");
     setValorMin("");
     setValorMax("");
     setDataDe("");
@@ -122,7 +128,8 @@ export default function Dashboard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const temFiltroAvancadoAtivo = uf || orgao || valorMin || valorMax || dataDe || dataAte;
+  const temFiltroAvancadoAtivo =
+    uf || orgao || uasg || numeroPregao || valorMin || valorMax || dataDe || dataAte;
 
   return (
     <div>
@@ -239,6 +246,27 @@ export default function Dashboard() {
                   value={orgao}
                   onChange={(e) => setOrgao(e.target.value)}
                   placeholder="Nome do órgão"
+                />
+              </div>
+            </div>
+            <div className="linha-dupla">
+              <div className="campo">
+                <label>UASG</label>
+                <input
+                  type="text"
+                  value={uasg}
+                  onChange={(e) => setUasg(e.target.value)}
+                  placeholder="Ex: 925326"
+                />
+                <span className="ajuda">Código da unidade administrativa do órgão.</span>
+              </div>
+              <div className="campo">
+                <label>Número do Pregão</label>
+                <input
+                  type="text"
+                  value={numeroPregao}
+                  onChange={(e) => setNumeroPregao(e.target.value)}
+                  placeholder="Ex: 90001/2025"
                 />
               </div>
             </div>

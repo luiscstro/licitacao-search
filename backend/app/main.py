@@ -285,6 +285,8 @@ def _buscar_licitacoes_pontuadas(
     valor_max: float | None,
     data_de: str | None,
     data_ate: str | None,
+    uasg: str | None = None,
+    numero_pregao: str | None = None,
 ) -> list[schemas.LicitacaoSaida]:
     """
     Núcleo compartilhado de busca/pontuação — usado por `/licitacoes`,
@@ -305,7 +307,17 @@ def _buscar_licitacoes_pontuadas(
     a busca rápida mesmo com uma base nacional bem maior.
     """
     tem_filtro_avancado = any(
-        [busca, uf, orgao, valor_min is not None, valor_max is not None, data_de, data_ate]
+        [
+            busca,
+            uf,
+            orgao,
+            valor_min is not None,
+            valor_max is not None,
+            data_de,
+            data_ate,
+            uasg,
+            numero_pregao,
+        ]
     )
 
     # -------- Pré-filtro no banco (rápido, mesmo com muitos registros) --------
@@ -317,6 +329,10 @@ def _buscar_licitacoes_pontuadas(
         query = query.filter(models.Licitacao.uf == uf.upper())
     if orgao:
         query = query.filter(models.Licitacao.orgao.ilike(f"%{orgao}%"))
+    if uasg:
+        query = query.filter(models.Licitacao.codigo_unidade == uasg.strip())
+    if numero_pregao:
+        query = query.filter(models.Licitacao.numero_compra.ilike(f"%{numero_pregao.strip()}%"))
     if valor_min is not None:
         query = query.filter(models.Licitacao.valor_estimado >= valor_min)
     if valor_max is not None:
@@ -380,6 +396,8 @@ def listar_licitacoes(
     valor_max: float | None = None,
     data_de: str | None = None,
     data_ate: str | None = None,
+    uasg: str | None = None,
+    numero_pregao: str | None = None,
     pagina: int = 1,
     por_pagina: int = 30,
     db: Session = Depends(get_db),
@@ -392,7 +410,18 @@ def listar_licitacoes(
     por_pagina = max(1, min(por_pagina, 200))  # trava um teto, pra ninguém pedir 100000 de uma vez
 
     todos_ordenados = _buscar_licitacoes_pontuadas(
-        db, usuario, criterio_id, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
+        db,
+        usuario,
+        criterio_id,
+        busca,
+        uf,
+        orgao,
+        valor_min,
+        valor_max,
+        data_de,
+        data_ate,
+        uasg,
+        numero_pregao,
     )
 
     total = len(todos_ordenados)
@@ -429,6 +458,8 @@ def exportar_licitacoes(
     valor_max: float | None = None,
     data_de: str | None = None,
     data_ate: str | None = None,
+    uasg: str | None = None,
+    numero_pregao: str | None = None,
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
@@ -440,7 +471,18 @@ def exportar_licitacoes(
         raise HTTPException(status_code=400, detail="Formato inválido. Use csv, xlsx ou pdf.")
 
     itens = _buscar_licitacoes_pontuadas(
-        db, usuario, criterio_id, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
+        db,
+        usuario,
+        criterio_id,
+        busca,
+        uf,
+        orgao,
+        valor_min,
+        valor_max,
+        data_de,
+        data_ate,
+        uasg,
+        numero_pregao,
     )[:LIMITE_EXPORTACAO]
 
     if formato == "csv":
@@ -468,13 +510,26 @@ def estatisticas_licitacoes(
     valor_max: float | None = None,
     data_de: str | None = None,
     data_ate: str | None = None,
+    uasg: str | None = None,
+    numero_pregao: str | None = None,
     db: Session = Depends(get_db),
     usuario: models.User = Depends(auth.usuario_atual),
 ):
     """Agregados (por UF, por modalidade, por mês) sobre o mesmo resultado
     de `/licitacoes`, pros gráficos do painel de indicadores."""
     itens = _buscar_licitacoes_pontuadas(
-        db, usuario, criterio_id, busca, uf, orgao, valor_min, valor_max, data_de, data_ate
+        db,
+        usuario,
+        criterio_id,
+        busca,
+        uf,
+        orgao,
+        valor_min,
+        valor_max,
+        data_de,
+        data_ate,
+        uasg,
+        numero_pregao,
     )
 
     contagem_uf = Counter((i.uf or "Não informado") for i in itens)

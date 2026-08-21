@@ -64,7 +64,11 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito, estilo }) {
         </span>
       </div>
 
-      <div className="protocolo">{lic.numero_controle}</div>
+      <div className="protocolo">
+        {lic.numero_controle}
+        {lic.codigo_unidade && ` · UASG ${lic.codigo_unidade}`}
+        {lic.numero_compra && ` · Pregão ${lic.numero_compra}`}
+      </div>
 
       <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 2 }}>
         {lic.link_edital && (

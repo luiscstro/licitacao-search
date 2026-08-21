@@ -17,6 +17,8 @@ from openpyxl.utils import get_column_letter
 
 CABECALHOS = [
     "Órgão",
+    "UASG",
+    "Nº do Pregão",
     "Cidade",
     "UF",
     "Objeto",
@@ -32,6 +34,8 @@ CABECALHOS = [
 def _linha(lic) -> list:
     return [
         lic.orgao or "",
+        lic.codigo_unidade or "",
+        lic.numero_compra or "",
         lic.cidade or "",
         lic.uf or "",
         lic.objeto or "",
@@ -48,9 +52,10 @@ def gerar_csv(licitacoes: list) -> bytes:
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=";")
     writer.writerow(CABECALHOS)
+    indice_valor = CABECALHOS.index("Valor estimado (R$)")
     for lic in licitacoes:
         linha = _linha(lic)
-        linha[4] = f"{linha[4]:.2f}".replace(".", ",")  # valor com vírgula decimal, padrão BR
+        linha[indice_valor] = f"{linha[indice_valor]:.2f}".replace(".", ",")  # vírgula decimal, padrão BR
         writer.writerow(linha)
     # utf-8-sig (com BOM) pra acentuação abrir certo quando aberto direto no Excel
     return buffer.getvalue().encode("utf-8-sig")
@@ -79,7 +84,7 @@ def gerar_xlsx(licitacoes: list) -> bytes:
     for lic in licitacoes:
         ws.append([_limpar_para_xlsx(v) for v in _linha(lic)])
 
-    larguras = [28, 18, 6, 50, 18, 22, 20, 40, 10, 40]
+    larguras = [28, 12, 14, 18, 6, 50, 18, 22, 20, 40, 10, 40]
     for indice, largura in enumerate(larguras, start=1):
         ws.column_dimensions[get_column_letter(indice)].width = largura
 
@@ -129,6 +134,16 @@ def gerar_pdf(licitacoes: list, titulo: str = "Licitações exportadas") -> byte
         pdf.set_font("Helvetica", "B", 10.5)
         pdf.set_text_color(15, 15, 17)
         linha(cabecalho, 5.5)
+
+        if lic.codigo_unidade or lic.numero_compra:
+            partes_identificacao = []
+            if lic.codigo_unidade:
+                partes_identificacao.append(f"UASG: {lic.codigo_unidade}")
+            if lic.numero_compra:
+                partes_identificacao.append(f"Nº do Pregão: {lic.numero_compra}")
+            pdf.set_font("Helvetica", "", 8.5)
+            pdf.set_text_color(139, 139, 147)
+            linha("  |  ".join(partes_identificacao), 4.5)
 
         pdf.set_font("Helvetica", "", 9.5)
         pdf.set_text_color(60, 60, 66)
