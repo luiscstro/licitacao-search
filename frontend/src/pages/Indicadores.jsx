@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { api } from "../api";
+import NumeroAnimado from "../components/NumeroAnimado";
 
 const CORES = ["#d4af37", "#0f0f11", "#2f6b4f", "#b14b3b", "#5b5b62", "#a9872a", "#8b8b93", "#dedee2"];
 
@@ -96,7 +97,17 @@ export default function Indicadores() {
       </div>
 
       {erro && <div className="erro-msg">{erro}</div>}
-      {carregando && <div className="carregando">Calculando indicadores...</div>}
+
+      {carregando && (
+        <div className="grade-indicadores">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="esqueleto-cartao" style={{ minHeight: 300 }}>
+              <div className="esqueleto-linha media" />
+              <div className="esqueleto-linha larga" style={{ height: 220 }} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {!carregando && estatisticas && estatisticas.total === 0 && (
         <div className="estado-vazio">
@@ -111,12 +122,14 @@ export default function Indicadores() {
           <div className="grade-resumo-indicadores">
             <div className="pastilha-resumo">
               <span className="pastilha-resumo-rotulo">Total de licitações</span>
-              <span className="pastilha-resumo-valor">{estatisticas.total}</span>
+              <span className="pastilha-resumo-valor">
+                <NumeroAnimado valor={estatisticas.total} />
+              </span>
             </div>
             <div className="pastilha-resumo">
               <span className="pastilha-resumo-rotulo">Valor total estimado</span>
               <span className="pastilha-resumo-valor">
-                {formatarMoeda(estatisticas.valor_total_estimado)}
+                <NumeroAnimado valor={estatisticas.valor_total_estimado} formatar={formatarMoeda} />
               </span>
             </div>
           </div>

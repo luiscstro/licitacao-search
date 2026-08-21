@@ -8,3 +8,11 @@ pydantic[email]
 requests
 openpyxl
 fpdf2
+
+# Observability — see app/observability.py. Both are zero-config no-ops by
+# default (console-only tracing, Sentry disabled unless SENTRY_DSN is set).
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-exporter-otlp-proto-http
+sentry-sdk[fastapi]

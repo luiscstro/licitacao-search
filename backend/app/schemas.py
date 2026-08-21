@@ -4,17 +4,17 @@ FastAPI usa isso pra validar automaticamente e gerar a documentação (/docs).
 """
 
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, EmailStr, ConfigDict
 
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 # ---------- Usuário / Empresa / Equipe ----------
+
 
 class UsuarioCriar(BaseModel):
     email: EmailStr
     senha: str
-    nome_empresa: Optional[str] = None
-    token_convite: Optional[str] = None  # se vier, entra numa empresa já existente
+    nome_empresa: str | None = None
+    token_convite: str | None = None  # se vier, entra numa empresa já existente
 
 
 class UsuarioLogin(BaseModel):
@@ -33,13 +33,49 @@ class UsuarioSaida(BaseModel):
 
 
 class PreferenciasAtualizar(BaseModel):
-    receber_notificacoes: Optional[bool] = None
+    receber_notificacoes: bool | None = None
 
 
 class EmpresaSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     nome: str
+    cnpj: str | None = None
+    inscricao_estadual: str | None = None
+    inscricao_municipal: str | None = None
+    endereco_logradouro: str | None = None
+    endereco_numero: str | None = None
+    endereco_complemento: str | None = None
+    endereco_bairro: str | None = None
+    endereco_cidade: str | None = None
+    endereco_uf: str | None = None
+    endereco_cep: str | None = None
+    representante_nome: str | None = None
+    representante_cpf: str | None = None
+    representante_cargo: str | None = None
+    representante_email: str | None = None
+    representante_telefone: str | None = None
+    situacao_cadastral: str | None = None
+    cnpj_sincronizado_em: datetime | None = None
+
+
+class EmpresaAtualizar(BaseModel):
+    nome: str | None = None
+    cnpj: str | None = None
+    inscricao_estadual: str | None = None
+    inscricao_municipal: str | None = None
+    endereco_logradouro: str | None = None
+    endereco_numero: str | None = None
+    endereco_complemento: str | None = None
+    endereco_bairro: str | None = None
+    endereco_cidade: str | None = None
+    endereco_uf: str | None = None
+    endereco_cep: str | None = None
+    representante_nome: str | None = None
+    representante_cpf: str | None = None
+    representante_cargo: str | None = None
+    representante_email: str | None = None
+    representante_telefone: str | None = None
 
 
 class Token(BaseModel):
@@ -70,6 +106,7 @@ class MembroEquipeSaida(BaseModel):
 
 # ---------- Critério ----------
 
+
 class CriterioBase(BaseModel):
     nome: str = "Meu critério"
     palavra_obrigatoria: str
@@ -86,15 +123,15 @@ class CriterioCriar(CriterioBase):
 
 
 class CriterioAtualizar(BaseModel):
-    nome: Optional[str] = None
-    palavra_obrigatoria: Optional[str] = None
-    palavras_bonus: Optional[str] = None
-    valor_minimo: Optional[float] = None
-    valor_maximo: Optional[float] = None
-    estados_permitidos: Optional[str] = None
-    exigir_dedicacao_exclusiva: Optional[bool] = None
-    modalidades_permitidas: Optional[str] = None
-    ativo: Optional[bool] = None
+    nome: str | None = None
+    palavra_obrigatoria: str | None = None
+    palavras_bonus: str | None = None
+    valor_minimo: float | None = None
+    valor_maximo: float | None = None
+    estados_permitidos: str | None = None
+    exigir_dedicacao_exclusiva: bool | None = None
+    modalidades_permitidas: str | None = None
+    ativo: bool | None = None
 
 
 class CriterioSaida(CriterioBase):
@@ -106,23 +143,38 @@ class CriterioSaida(CriterioBase):
 
 # ---------- Licitação (resultado filtrado/buscado) ----------
 
+
 class LicitacaoSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     numero_controle: str
     orgao: str
-    cidade: Optional[str]
-    uf: Optional[str]
+    cidade: str | None
+    uf: str | None
     objeto: str
     valor_estimado: float
-    modalidade: Optional[str]
-    data_encerramento_proposta: Optional[str]
+    modalidade: str | None
+    data_encerramento_proposta: str | None
     link_edital: str
     score: float = 0
     motivos: list[str] = []
     favoritada: bool = False
 
 
+# ---------- Pipeline (mini-CRM, compartilhado pela empresa) ----------
+
+
+class OportunidadeSaida(LicitacaoSaida):
+    status: str = "monitorando"
+    status_atualizado_em: datetime | None = None
+    atualizado_por_email: str = ""
+
+
+class AtualizarStatusEntrada(BaseModel):
+    status: str
+
+
 # ---------- Licitações paginadas ----------
+
 
 class LicitacoesPaginadas(BaseModel):
     total: int
@@ -133,6 +185,7 @@ class LicitacoesPaginadas(BaseModel):
 
 
 # ---------- Favoritos ----------
+
 
 class FavoritoCriar(BaseModel):
     numero_controle: str
@@ -145,6 +198,7 @@ class FavoritoSaida(BaseModel):
 
 
 # ---------- Comentários ----------
+
 
 class ComentarioCriar(BaseModel):
     numero_controle: str
@@ -161,6 +215,7 @@ class ComentarioSaida(BaseModel):
 
 # ---------- Estatísticas (gráficos do dashboard) ----------
 
+
 class ContagemPorChave(BaseModel):
     chave: str
     quantidade: int
@@ -172,3 +227,57 @@ class EstatisticasSaida(BaseModel):
     por_uf: list[ContagemPorChave]
     por_modalidade: list[ContagemPorChave]
     por_mes: list[ContagemPorChave]
+
+
+# ---------- Documentos de habilitação / certidões ----------
+
+
+class DocumentoAtualizar(BaseModel):
+    nome: str | None = None
+    categoria: str | None = None
+    data_emissao: datetime | None = None
+    data_validade: datetime | None = None
+
+
+class DocumentoSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    categoria: str
+    nome: str
+    nome_arquivo_original: str
+    tamanho_bytes: int
+    data_emissao: datetime | None = None
+    data_validade: datetime | None = None
+    status: str = "sem_data"
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_por_email: str = ""
+
+
+class DocumentoHistoricoSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nome: str
+    nome_arquivo_original: str
+    data_emissao: datetime | None = None
+    data_validade: datetime | None = None
+    substituido_em: datetime
+    substituido_por_email: str = ""
+
+
+class ContagemPorStatus(BaseModel):
+    status: str
+    quantidade: int
+
+
+class AtividadeRecente(BaseModel):
+    nome: str
+    categoria: str
+    atualizado_em: datetime
+    atualizado_por_email: str = ""
+
+
+class IndicadoresDocumentosSaida(BaseModel):
+    por_status: list[ContagemPorStatus]
+    por_categoria: list[ContagemPorChave]
+    ultimas_atualizacoes: list[AtividadeRecente]

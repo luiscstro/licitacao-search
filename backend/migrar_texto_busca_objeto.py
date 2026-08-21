@@ -17,8 +17,8 @@ import sqlite3
 import sys
 
 sys.path.insert(0, ".")
-from app.scoring import montar_texto_busca_objeto
 from app.database import DATABASE_URL
+from app.scoring import montar_texto_busca_objeto
 
 if not DATABASE_URL.startswith("sqlite"):
     print("Esse script assume SQLite. Se você já migrou pra outro banco, adapte antes de rodar.")

@@ -5,15 +5,13 @@ export function formatarValor(valor) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
 }
 
-export function diasAte(dataStr) {
-  if (!dataStr) return "—";
+export function formatarDataHora(dataStr) {
+  if (!dataStr) return "sem prazo informado";
   const data = new Date(dataStr);
-  const hoje = new Date();
-  const diffMs = data.setHours(0, 0, 0, 0) - hoje.setHours(0, 0, 0, 0);
-  const dias = Math.round(diffMs / 86400000);
-  if (dias < 0) return `venceu há ${Math.abs(dias)}d`;
-  if (dias === 0) return "hoje";
-  return `em ${dias}d`;
+  if (Number.isNaN(data.getTime())) return "sem prazo informado";
+  const dataFormatada = data.toLocaleDateString("pt-BR");
+  const horaFormatada = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${dataFormatada} às ${horaFormatada}`;
 }
 
 export function diasRestantes(dataStr) {
@@ -26,4 +24,26 @@ export function diasRestantes(dataStr) {
 export function urgente(dataStr) {
   const dias = diasRestantes(dataStr);
   return dias !== null && dias >= 0 && dias <= 3;
+}
+
+export function tempoRelativo(dataStr) {
+  if (!dataStr) return "";
+  const data = new Date(dataStr);
+  if (Number.isNaN(data.getTime())) return "";
+  const diffMin = Math.floor((Date.now() - data.getTime()) / 60000);
+  if (diffMin < 1) return "agora mesmo";
+  if (diffMin < 60) return `há ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `há ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 30) return `há ${diffD}d`;
+  return data.toLocaleDateString("pt-BR");
+}
+
+export function iniciais(email) {
+  if (!email) return "?";
+  const nome = email.split("@")[0];
+  const partes = nome.split(/[._-]/).filter(Boolean);
+  if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
+  return nome.slice(0, 2).toUpperCase();
 }

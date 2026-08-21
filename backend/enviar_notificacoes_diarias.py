@@ -24,8 +24,8 @@ Como usar:
 import sys
 from datetime import datetime, timedelta
 
+from app import email_utils, models, scoring
 from app.database import SessionLocal
-from app import models, scoring, email_utils
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
@@ -35,16 +35,25 @@ JANELA_HORAS = 26
 
 
 def montar_itens_para_empresa(db, empresa: models.Empresa, desde: datetime) -> list[dict]:
-    criterios = db.query(models.Criterio).filter(
-        models.Criterio.empresa_id == empresa.id, models.Criterio.ativo == True  # noqa: E712
-    ).all()
+    criterios = (
+        db.query(models.Criterio)
+        .filter(
+            models.Criterio.empresa_id == empresa.id,
+            models.Criterio.ativo == True,  # noqa: E712
+        )
+        .all()
+    )
     if not criterios:
         return []
 
-    candidatas = db.query(models.Licitacao).filter(
-        models.Licitacao.ativa == True,  # noqa: E712
-        models.Licitacao.primeira_vez_vista >= desde,
-    ).all()
+    candidatas = (
+        db.query(models.Licitacao)
+        .filter(
+            models.Licitacao.ativa == True,  # noqa: E712
+            models.Licitacao.primeira_vez_vista >= desde,
+        )
+        .all()
+    )
 
     itens = []
     for licitacao in candidatas:
@@ -55,18 +64,20 @@ def montar_itens_para_empresa(db, empresa: models.Empresa, desde: datetime) -> l
                 melhor_score, melhores_motivos, melhor_criterio = score, motivos, criterio
 
         if melhor_criterio is not None:
-            itens.append({
-                "orgao": licitacao.orgao,
-                "cidade": licitacao.cidade,
-                "uf": licitacao.uf,
-                "valor_estimado": licitacao.valor_estimado,
-                "objeto": licitacao.objeto,
-                "modalidade": licitacao.modalidade,
-                "data_encerramento_proposta": licitacao.data_encerramento_proposta,
-                "link_edital": licitacao.link_edital,
-                "motivos": melhores_motivos,
-                "criterio_nome": melhor_criterio.nome,
-            })
+            itens.append(
+                {
+                    "orgao": licitacao.orgao,
+                    "cidade": licitacao.cidade,
+                    "uf": licitacao.uf,
+                    "valor_estimado": licitacao.valor_estimado,
+                    "objeto": licitacao.objeto,
+                    "modalidade": licitacao.modalidade,
+                    "data_encerramento_proposta": licitacao.data_encerramento_proposta,
+                    "link_edital": licitacao.link_edital,
+                    "motivos": melhores_motivos,
+                    "criterio_nome": melhor_criterio.nome,
+                }
+            )
 
     itens.sort(key=lambda i: i["valor_estimado"] or 0, reverse=True)
     return itens
@@ -83,18 +94,24 @@ def main():
 
     try:
         empresas = db.query(models.Empresa).all()
-        print(f"[{datetime.now()}] Verificando {len(empresas)} empresa(s), licitações vistas desde {desde}...")
+        print(
+            f"[{datetime.now()}] Verificando {len(empresas)} empresa(s), licitações vistas desde {desde}..."
+        )
 
         for empresa in empresas:
             itens = montar_itens_para_empresa(db, empresa, desde)
             if not itens:
                 continue
 
-            usuarios = db.query(models.User).filter(
-                models.User.empresa_id == empresa.id,
-                models.User.ativo == True,  # noqa: E712
-                models.User.receber_notificacoes == True,  # noqa: E712
-            ).all()
+            usuarios = (
+                db.query(models.User)
+                .filter(
+                    models.User.empresa_id == empresa.id,
+                    models.User.ativo == True,  # noqa: E712
+                    models.User.receber_notificacoes == True,  # noqa: E712
+                )
+                .all()
+            )
             if not usuarios:
                 continue
 

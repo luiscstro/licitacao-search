@@ -1,17 +1,20 @@
 import { ArrowUpRight, Clock, MapPin, MessageCircle, Star, Wallet } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api";
-import { diasAte, formatarValor, urgente } from "../utils/data";
+import { formatarDataHora, formatarValor, urgente } from "../utils/data";
 import Carimbo from "./Carimbo";
 import PainelComentarios from "./PainelComentarios";
 
-export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
+export default function CartaoLicitacao({ lic, aoMudarFavorito, estilo }) {
   const [favoritada, setFavoritada] = useState(lic.favoritada);
   const [comentariosAbertos, setComentariosAbertos] = useState(false);
   const [alternandoFavorito, setAlternandoFavorito] = useState(false);
+  const [pop, setPop] = useState(false);
 
   async function alternarFavorito() {
     setAlternandoFavorito(true);
+    setPop(true);
+    setTimeout(() => setPop(false), 260);
     try {
       if (favoritada) {
         await api.desfavoritar(lic.numero_controle);
@@ -28,13 +31,13 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
   }
 
   return (
-    <div className="cartao-licitacao">
+    <div className="cartao-licitacao" style={estilo}>
       <div className="topo-cartao">
         {lic.score > 0 && <Carimbo cor="dourado">{Math.round(lic.score)} pts</Carimbo>}
         {lic.uf && <Carimbo cor="neutro">{lic.uf}</Carimbo>}
         {urgente(lic.data_encerramento_proposta) && <Carimbo cor="terracota">prazo curto</Carimbo>}
         <button
-          className={`botao-favorito ${favoritada ? "ativo" : ""}`}
+          className={`botao-favorito ${favoritada ? "ativo" : ""} ${pop ? "pop" : ""}`}
           onClick={alternarFavorito}
           disabled={alternandoFavorito}
           title={favoritada ? "Remover dos favoritos" : "Favoritar"}
@@ -57,7 +60,7 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito }) {
           <Wallet strokeWidth={2} /> {formatarValor(lic.valor_estimado)}
         </span>
         <span>
-          <Clock strokeWidth={2} /> {diasAte(lic.data_encerramento_proposta)}
+          <Clock strokeWidth={2} /> {formatarDataHora(lic.data_encerramento_proposta)}
         </span>
       </div>
 

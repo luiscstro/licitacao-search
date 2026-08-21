@@ -1,7 +1,9 @@
 import {
   Bell,
   ChevronDown,
+  FileCheck2,
   HelpCircle,
+  Kanban,
   LayoutGrid,
   ListChecks,
   LogOut,
@@ -9,35 +11,37 @@ import {
   Star,
   Users2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "./api";
+import EsqueletoPagina from "./components/EsqueletoPagina";
 import { LogoCompacto } from "./components/Logo";
 import PainelAjuda from "./components/PainelAjuda";
 import PainelAlertas from "./components/PainelAlertas";
-import Criterios from "./pages/Criterios";
-import Dashboard from "./pages/Dashboard";
-import Equipe from "./pages/Equipe";
-import Favoritos from "./pages/Favoritos";
-import Ferramentas from "./pages/Ferramentas";
-import Indicadores from "./pages/Indicadores";
-import Notificacoes from "./pages/Notificacoes";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
+import { iniciais } from "./utils/data";
+
+// Cada página vira um chunk separado, baixado só quando o usuário navega
+// até ela — a tela de login continua no bundle principal (é a primeira
+// coisa renderizada, não faz sentido adiar).
+const Ferramentas = lazy(() => import("./pages/Ferramentas"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Criterios = lazy(() => import("./pages/Criterios"));
+const Favoritos = lazy(() => import("./pages/Favoritos"));
+const Equipe = lazy(() => import("./pages/Equipe"));
+const Notificacoes = lazy(() => import("./pages/Notificacoes"));
+const Indicadores = lazy(() => import("./pages/Indicadores"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
+const Documentos = lazy(() => import("./pages/Documentos"));
 
 const ITENS_NAV = [
   { id: "ferramentas", rotulo: "Ferramentas", Icone: LayoutGrid },
   { id: "dashboard", rotulo: "Licitações", Icone: Search },
   { id: "criterios", rotulo: "Meus critérios", Icone: ListChecks },
   { id: "favoritos", rotulo: "Favoritos", Icone: Star },
+  { id: "pipeline", rotulo: "Pipeline", Icone: Kanban },
+  { id: "documentos", rotulo: "Documentos", Icone: FileCheck2 },
   { id: "equipe", rotulo: "Minha equipe", Icone: Users2 },
 ];
-
-function iniciais(email) {
-  if (!email) return "?";
-  const nome = email.split("@")[0];
-  const partes = nome.split(/[._-]/).filter(Boolean);
-  if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
-  return nome.slice(0, 2).toUpperCase();
-}
 
 export default function App() {
   const [logado, setLogado] = useState(api.estaLogado());
@@ -86,6 +90,8 @@ export default function App() {
     dashboard: <Dashboard />,
     criterios: <Criterios />,
     favoritos: <Favoritos />,
+    pipeline: <Pipeline />,
+    documentos: <Documentos perfil={perfil} />,
     equipe: <Equipe perfil={perfil} />,
     notificacoes: <Notificacoes perfil={perfil} aoAtualizarPerfil={setPerfil} />,
     indicadores: <Indicadores />,
@@ -156,7 +162,11 @@ export default function App() {
         </div>
       </header>
 
-      <main className="conteudo">{paginas[pagina]}</main>
+      <main className="conteudo">
+        <div key={pagina} className="conteudo-pagina">
+          <Suspense fallback={<EsqueletoPagina />}>{paginas[pagina]}</Suspense>
+        </div>
+      </main>
 
       {ajudaAberta && <PainelAjuda aoFechar={() => setAjudaAberta(false)} />}
     </div>

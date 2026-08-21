@@ -65,11 +65,28 @@ export default function Equipe({ perfil }) {
 
       {erro && <div className="erro-msg">{erro}</div>}
 
+      {carregando && (
+        <div className="lista-criterios">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="esqueleto-cartao"
+              style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <div style={{ flex: 1 }}>
+                <div className="esqueleto-linha media" />
+                <div className="esqueleto-linha curta" style={{ marginTop: 8 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {!carregando && (
         <>
-          <div className="lista-criterios">
-            {membros.map((m) => (
-              <div className="item-criterio" key={m.id}>
+          <div className="lista-criterios entrada-escalonada">
+            {membros.map((m, indice) => (
+              <div className="item-criterio" key={m.id} style={{ "--i": indice }}>
                 <div>
                   <div className="nome-criterio">{m.email}</div>
                   <div className="resumo-criterio">

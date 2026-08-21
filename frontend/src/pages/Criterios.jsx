@@ -118,7 +118,22 @@ export default function Criterios() {
 
       {!editando && (
         <>
-          {carregando && <div className="carregando">Carregando...</div>}
+          {carregando && (
+            <div className="lista-criterios">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="esqueleto-cartao"
+                  style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div className="esqueleto-linha media" />
+                    <div className="esqueleto-linha larga" style={{ marginTop: 8 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {!carregando && criterios.length === 0 && (
             <div className="estado-vazio">
@@ -128,9 +143,9 @@ export default function Criterios() {
             </div>
           )}
 
-          <div className="lista-criterios">
-            {criterios.map((c) => (
-              <div className="item-criterio" key={c.id}>
+          <div className="lista-criterios entrada-escalonada">
+            {criterios.map((c, indice) => (
+              <div className="item-criterio" key={c.id} style={{ "--i": indice }}>
                 <div>
                   <div className="nome-criterio">{c.nome}</div>
                   <div className="resumo-criterio">{resumoCriterio(c)}</div>

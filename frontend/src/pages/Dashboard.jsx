@@ -202,7 +202,7 @@ export default function Dashboard() {
               disabled={exportando || licitacoes.length === 0}
               onClick={() => setMenuExportarAberto((v) => !v)}
             >
-              <Download size={15} strokeWidth={2} />
+              {exportando ? <span className="spinner-inline" /> : <Download size={15} strokeWidth={2} />}
               {exportando ? "Exportando..." : "Exportar"}
               <ChevronDown size={13} strokeWidth={2.2} />
             </button>
@@ -301,13 +301,25 @@ export default function Dashboard() {
           </div>
         )}
 
-      {carregando && <div className="carregando">Carregando licitações...</div>}
+      {carregando && (
+        <div className="grade-licitacoes">
+          {Array.from({ length: 6 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: placeholder de tamanho fixo, nunca reordenado
+            <div key={i} className="esqueleto-cartao">
+              <div className="esqueleto-linha curta" />
+              <div className="esqueleto-linha media" />
+              <div className="esqueleto-linha larga" />
+              <div className="esqueleto-linha larga" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {!carregando && licitacoes.length > 0 && (
         <>
-          <div className="grade-licitacoes">
-            {licitacoes.map((lic) => (
-              <CartaoLicitacao key={lic.numero_controle} lic={lic} />
+          <div className="grade-licitacoes entrada-escalonada">
+            {licitacoes.map((lic, indice) => (
+              <CartaoLicitacao key={lic.numero_controle} lic={lic} estilo={{ "--i": indice }} />
             ))}
           </div>
 

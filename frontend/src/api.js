@@ -132,6 +132,18 @@ export const api = {
     return requisicao("/equipe/empresa");
   },
 
+  async atualizarEmpresa(dados) {
+    return requisicao("/equipe/empresa", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados),
+    });
+  },
+
+  async sincronizarCnpj() {
+    return requisicao("/equipe/empresa/sincronizar-cnpj", { method: "POST" });
+  },
+
   async listarMembros() {
     return requisicao("/equipe/membros");
   },
@@ -239,6 +251,25 @@ export const api = {
     return requisicao("/favoritos");
   },
 
+  // ---------- Pipeline (mini-CRM, compartilhado pela empresa) ----------
+  async listarPipeline() {
+    return requisicao("/pipeline");
+  },
+
+  async atualizarStatusPipeline(numeroControle, statusNovo) {
+    return requisicao(`/pipeline${montarQuery({ numero_controle: numeroControle })}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: statusNovo }),
+    });
+  },
+
+  async removerDoPipeline(numeroControle) {
+    return requisicao(`/pipeline${montarQuery({ numero_controle: numeroControle })}`, {
+      method: "DELETE",
+    });
+  },
+
   // ---------- Comentários ----------
   async listarComentarios(numeroControle) {
     return requisicao(`/comentarios${montarQuery({ numero_controle: numeroControle })}`);
@@ -250,5 +281,54 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ numero_controle: numeroControle, texto }),
     });
+  },
+
+  // ---------- Documentos de habilitação / certidões ----------
+  async listarDocumentos(categoria) {
+    return requisicao(`/documentos${montarQuery({ categoria })}`);
+  },
+
+  // FormData: o browser define o Content-Type (multipart + boundary)
+  // sozinho, então não passamos header nenhum além da autenticação.
+  async enviarDocumento(formData) {
+    return requisicao("/documentos", { method: "POST", body: formData });
+  },
+
+  async atualizarDocumento(id, dados) {
+    return requisicao(`/documentos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados),
+    });
+  },
+
+  async substituirDocumento(id, formData) {
+    return requisicao(`/documentos/${id}/substituir`, { method: "POST", body: formData });
+  },
+
+  async removerDocumento(id) {
+    return requisicao(`/documentos/${id}`, { method: "DELETE" });
+  },
+
+  async historicoDocumento(documentoId) {
+    return requisicao(`/documentos/historico${montarQuery({ documento_id: documentoId })}`);
+  },
+
+  async indicadoresDocumentos() {
+    return requisicao("/documentos/indicadores");
+  },
+
+  // Abre o arquivo (PDF/imagem) numa aba nova — não é JSON, então busca
+  // o blob autenticado direto, sem passar pelo helper `requisicao`.
+  async baixarArquivoDocumento(id) {
+    const token = pegarToken();
+    const resp = await fetch(`${API_BASE}/documentos/${id}/arquivo`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!resp.ok) throw new Error("Erro ao abrir o arquivo");
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   },
 };

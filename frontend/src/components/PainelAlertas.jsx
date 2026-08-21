@@ -1,7 +1,7 @@
 import { ArrowUpRight, Bell, Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import { diasAte, diasRestantes } from "../utils/data";
+import { diasRestantes, formatarDataHora } from "../utils/data";
 
 export default function PainelAlertas({ aberto, aoAlternar, aoFechar }) {
   const [carregando, setCarregando] = useState(false);
@@ -93,7 +93,8 @@ export default function PainelAlertas({ aberto, aoAlternar, aoFechar }) {
                     <ArrowUpRight size={13} strokeWidth={2.2} />
                   </div>
                   <div className="painel-alertas-prazo">
-                    <Clock size={12} strokeWidth={2.2} /> encerra {diasAte(lic.data_encerramento_proposta)}
+                    <Clock size={12} strokeWidth={2.2} /> encerra{" "}
+                    {formatarDataHora(lic.data_encerramento_proposta)}
                   </div>
                 </a>
               ))}

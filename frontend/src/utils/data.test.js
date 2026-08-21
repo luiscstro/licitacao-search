@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { diasAte, diasRestantes, formatarValor, urgente } from "./data";
+import { diasRestantes, formatarValor, urgente } from "./data";
 
 describe("formatarValor", () => {
   it("formata um número como moeda em pt-BR (BRL)", () => {
@@ -31,7 +31,7 @@ describe("formatarValor", () => {
   });
 });
 
-describe("funções relativas a data (diasAte, diasRestantes, urgente)", () => {
+describe("funções relativas a data (diasRestantes, urgente)", () => {
   beforeEach(() => {
     // Fixa "hoje" em 2026-08-19 para tornar os testes determinísticos.
     // Importante: usamos meia-noite UTC (mesmo formato que "new Date('YYYY-MM-DD')"
@@ -63,26 +63,6 @@ describe("funções relativas a data (diasAte, diasRestantes, urgente)", () => {
 
     it("retorna um número negativo para datas passadas", () => {
       expect(diasRestantes("2026-08-14")).toBe(-5);
-    });
-  });
-
-  describe("diasAte", () => {
-    it("retorna '—' quando a data não é informada", () => {
-      expect(diasAte(null)).toBe("—");
-      expect(diasAte(undefined)).toBe("—");
-      expect(diasAte("")).toBe("—");
-    });
-
-    it("retorna 'hoje' para a data de hoje", () => {
-      expect(diasAte("2026-08-19")).toBe("hoje");
-    });
-
-    it("retorna 'em Nd' para datas futuras", () => {
-      expect(diasAte("2026-08-24")).toBe("em 5d");
-    });
-
-    it("retorna 'venceu há Nd' para datas passadas", () => {
-      expect(diasAte("2026-08-14")).toBe("venceu há 5d");
     });
   });
 

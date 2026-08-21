@@ -43,12 +43,28 @@ export default function Favoritos() {
         </div>
       )}
 
-      {carregando && <div className="carregando">Carregando favoritos...</div>}
+      {carregando && (
+        <div className="grade-licitacoes">
+          {Array.from({ length: 4 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: placeholder de tamanho fixo, nunca reordenado
+            <div key={i} className="esqueleto-cartao">
+              <div className="esqueleto-linha curta" />
+              <div className="esqueleto-linha media" />
+              <div className="esqueleto-linha larga" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {!carregando && favoritos.length > 0 && (
-        <div className="grade-licitacoes">
-          {favoritos.map((lic) => (
-            <CartaoLicitacao key={lic.numero_controle} lic={lic} aoMudarFavorito={carregar} />
+        <div className="grade-licitacoes entrada-escalonada">
+          {favoritos.map((lic, indice) => (
+            <CartaoLicitacao
+              key={lic.numero_controle}
+              lic={lic}
+              aoMudarFavorito={carregar}
+              estilo={{ "--i": indice }}
+            />
           ))}
         </div>
       )}
