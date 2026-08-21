@@ -6,7 +6,7 @@ inscrições, endereço, representante legal, situação cadastral) na tabela
 
 Rode isso UMA VEZ depois de atualizar os arquivos do backend:
     cd backend
-    python3 migrar_dados_empresa.py
+    python3 migrations/migrar_dados_empresa.py
 
 Depois disso pode subir a API normalmente (uvicorn app.main:app --reload).
 """

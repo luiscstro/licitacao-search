@@ -5,7 +5,7 @@ Migração única: adiciona a coluna `receber_notificacoes` na tabela `users`
 
 Rode isso UMA VEZ depois de atualizar os arquivos do backend:
     cd backend
-    python3 migrar_notificacoes.py
+    python3 migrations/migrar_notificacoes.py
 
 Depois disso pode subir a API normalmente (uvicorn app.main:app --reload).
 """
