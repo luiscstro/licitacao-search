@@ -27,4 +27,12 @@ if %ERRORLEVEL% EQU 0 (
     echo RESULTADO: terminou com erro ^(codigo %ERRORLEVEL%^) -- confira o log acima >> "%~dp0log_notificacoes.txt"
 )
 
+"%~dp0..\venv\Scripts\python.exe" "%~dp0enviar_alertas_documentos.py" >> "%~dp0log_notificacoes.txt" 2>&1
+
+if %ERRORLEVEL% EQU 0 (
+    echo RESULTADO ^(documentos^): concluido com sucesso >> "%~dp0log_notificacoes.txt"
+) else (
+    echo RESULTADO ^(documentos^): terminou com erro ^(codigo %ERRORLEVEL%^) -- confira o log acima >> "%~dp0log_notificacoes.txt"
+)
+
 echo FIM da execucao: %date% %time% >> "%~dp0log_notificacoes.txt"
