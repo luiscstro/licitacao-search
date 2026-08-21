@@ -17,6 +17,7 @@ import EsqueletoPagina from "./components/EsqueletoPagina";
 import { LogoCompacto } from "./components/Logo";
 import PainelAjuda from "./components/PainelAjuda";
 import PainelAlertas from "./components/PainelAlertas";
+import Rodape from "./components/Rodape";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
 import { iniciais } from "./utils/data";
 
@@ -167,6 +168,8 @@ export default function App() {
           <Suspense fallback={<EsqueletoPagina />}>{paginas[pagina]}</Suspense>
         </div>
       </main>
+
+      <Rodape />
 
       {ajudaAberta && <PainelAjuda aoFechar={() => setAjudaAberta(false)} />}
     </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { LogoCompleto } from "../components/Logo";
+import PainelLegal from "../components/PainelLegal";
 
 // Se o link de convite tiver "?convite=TOKEN" na URL, já pega automaticamente
 function pegarConviteDaUrl() {
@@ -18,6 +19,7 @@ export default function TelaAutenticacao({ aoAutenticar }) {
   const [mostrarCampoConvite, setMostrarCampoConvite] = useState(!!conviteDaUrl);
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [painelLegalAberto, setPainelLegalAberto] = useState(null);
 
   async function enviar(e) {
     e.preventDefault();
@@ -165,7 +167,25 @@ export default function TelaAutenticacao({ aoAutenticar }) {
             )}
           </div>
         )}
+
+        <div className="auth-legal">
+          <button type="button" onClick={() => setPainelLegalAberto("termos")}>
+            Termos de Uso
+          </button>
+          <span aria-hidden="true">·</span>
+          <button type="button" onClick={() => setPainelLegalAberto("privacidade")}>
+            Privacidade
+          </button>
+          <span aria-hidden="true">·</span>
+          <button type="button" onClick={() => setPainelLegalAberto("cookies")}>
+            Cookies
+          </button>
+        </div>
       </div>
+
+      {painelLegalAberto && (
+        <PainelLegal tipo={painelLegalAberto} aoFechar={() => setPainelLegalAberto(null)} />
+      )}
     </div>
   );
 }

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Página não encontrada · LicitTracker</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%230F0F11'/%3E%3Cpath d='M11.5 20.5L16.5 25.5L28.5 13.5' stroke='%23D4AF37' stroke-width='4' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #0f0f11 0%, #000000 100%);
+      font-family: "Poppins", -apple-system, sans-serif;
+      color: #f7f7f7;
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+      background-size: 26px 26px;
+      pointer-events: none;
+    }
+    body::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      bottom: -90px;
+      width: 360px;
+      height: 360px;
+      border: 1.5px dashed rgba(212, 175, 55, 0.45);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    main {
+      position: relative;
+      max-width: 460px;
+      text-align: center;
+    }
+    .marca {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+    .marca span {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .marca .licit { color: #fff; }
+    .marca .tracker { color: #d4af37; }
+    .protocolo {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a9872a;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 64px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    p {
+      font-size: 15px;
+      color: #b5b5bd;
+      line-height: 1.6;
+      margin: 0 0 32px;
+    }
+    a.botao {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #d4af37;
+      color: #0f0f11;
+      font-weight: 600;
+      font-size: 14.5px;
+      text-decoration: none;
+      padding: 12px 22px;
+      border-radius: 6px;
+      transition: background 160ms ease;
+    }
+    a.botao:hover { background: #a9872a; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="marca">
+      <svg width="26" height="26" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="36" height="36" rx="10" stroke="#d4af37" stroke-width="2.25" />
+        <path d="M11.5 20.5L16.5 25.5L28.5 13.5" stroke="#d4af37" stroke-width="3.25" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      </svg>
+      <span><span class="licit">Licit</span><span class="tracker">Tracker</span></span>
+    </div>
+    <div class="protocolo">Protocolo não localizado</div>
+    <h1>404</h1>
+    <p>Essa página não existe ou o endereço mudou. Confira se digitou certo, ou volte pro início.</p>
+    <a class="botao" href="/">Voltar para o LicitTracker</a>
+  </main>
+</body>
+</html>
