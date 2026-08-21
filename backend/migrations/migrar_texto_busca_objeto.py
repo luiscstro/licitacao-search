@@ -7,7 +7,7 @@ estão salvos localmente).
 
 Rode isso UMA VEZ depois de atualizar os arquivos do backend:
     cd backend
-    python3 migrar_texto_busca_objeto.py
+    python3 migrations/migrar_texto_busca_objeto.py
 
 Depois disso pode rodar a API normalmente — não precisa rodar o
 collector_pncp.py de novo por causa dessa mudança específica.
