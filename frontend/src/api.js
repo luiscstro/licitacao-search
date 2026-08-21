@@ -68,6 +68,8 @@ function parametrosLicitacoes(filtros = {}) {
     valor_max: filtros.valorMax,
     data_de: filtros.dataDe,
     data_ate: filtros.dataAte,
+    uasg: filtros.uasg,
+    numero_pregao: filtros.numeroPregao,
   };
 }
 

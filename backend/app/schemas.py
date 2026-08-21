@@ -155,6 +155,8 @@ class LicitacaoSaida(BaseModel):
     modalidade: str | None
     data_encerramento_proposta: str | None
     link_edital: str
+    codigo_unidade: str | None = None
+    numero_compra: str | None = None
     score: float = 0
     motivos: list[str] = []
     favoritada: bool = False

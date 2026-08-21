@@ -129,6 +129,15 @@ class Licitacao(Base):
     data_encerramento_proposta = Column(String, nullable=True)
     link_edital = Column(String, default="")
 
+    # codigo_unidade: código da unidade administrativa do órgão no PNCP
+    # (unidadeOrgao.codigoUnidade) — é o mesmo código do antigo UASG pra
+    # unidades que já existiam no SIASG/ComprasNet.
+    # numero_compra: número da contratação no sistema de origem
+    # (numeroCompra), ex: "90001/2025" — o "número do pregão" que o órgão
+    # publica, diferente do número de controle interno do PNCP.
+    codigo_unidade = Column(String, index=True)
+    numero_compra = Column(String, index=True)
+
     # Texto de busca pré-processado (minúsculo, sem acento), calculado uma
     # vez pelo coletor em vez de reprocessar a cada consulta:
     # - texto_busca_objeto: SÓ objeto + informação complementar. É o que
