@@ -4,6 +4,7 @@ dialeto/driver ao tentar conectar, não ao criar o Engine)."""
 
 from sqlalchemy import create_engine
 
+from app import models
 from app.database import normalizar_database_url
 
 
@@ -43,3 +44,18 @@ def test_driver_psycopg_resolve_para_url_com_sufixo_psycopg():
     porque a URL usada tinha esse sufixo."""
     engine = create_engine("postgresql+psycopg://usuario:senha@localhost:5432/banco")
     assert engine.dialect.driver == "psycopg"
+
+
+def test_texto_busca_nao_tem_indice_btree():
+    """Regressão: um índice B-tree em texto_busca/texto_busca_objeto
+    quebrava o INSERT no Postgres pra licitações com informacao_complementar
+    longa — ProgramLimitExceeded, o limite de tamanho de linha de índice
+    B-tree (bug real, encontrado migrando dados pro Postgres; o SQLite não
+    tem esse limite, por isso nunca apareceu antes). Nenhum dos dois campos
+    precisa de índice: são lidos em Python (scoring.py) ou filtrados com
+    .contains() (LIKE '%termo%', main.py), que não usa índice B-tree."""
+    colunas_indexadas = {
+        coluna.name for indice in models.Licitacao.__table__.indexes for coluna in indice.columns
+    }
+    assert "texto_busca" not in colunas_indexadas
+    assert "texto_busca_objeto" not in colunas_indexadas
