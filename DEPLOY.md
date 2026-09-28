@@ -140,16 +140,32 @@ Render, o disco **não é persistente entre deploys** — cada novo deploy
 zera o banco. Com Postgres (seção 3), isso deixa de ser problema — os
 dados sobrevivem a qualquer redeploy, porque vivem fora do container.
 
-## 7. Coleta periódica (opcional)
+## 7. Coleta periódica automática (GitHub Actions)
 
-Como o coletor só pode rodar de um lugar que o PNCP não bloqueie (sua
-própria máquina, ver seção 3.3), o jeito de automatizar isso é o mesmo já
-usado em desenvolvimento: o Agendador de Tarefas do Windows
-(`rodar_coletor_diario.bat`), rodando na sua máquina (ligada no horário
-agendado) com `DATABASE_URL` apontando pro Postgres do Render/Neon em vez
-do SQLite local. Serviços de "cron na nuvem" (cron-job.org, Cron Job do
-Render) só ajudariam se o disparo acontecesse de fora do Render — não é
-o caso hoje.
+O coletor não pode rodar no Render (seção 3), mas **não precisa da sua
+máquina ligada** — o workflow `.github/workflows/coletor-pncp.yml` já
+está no repositório e roda num agendamento diário (06:00 UTC / 03:00
+BRT) direto no GitHub Actions, que testamos e o PNCP não bloqueia
+(infraestrutura diferente do Render).
+
+Pra ativar:
+
+1. No repositório do GitHub → **Settings** → **Secrets and variables** →
+   **Actions** → **New repository secret**.
+2. Nome: `DATABASE_URL`. Valor: a mesma connection string do Neon usada no
+   Render (seção 3).
+3. Pronto — o workflow já roda sozinho todo dia. Pra rodar uma vez agora
+   (sem esperar o horário agendado), vá em **Actions** → **Coletor de
+   licitações do PNCP** → **Run workflow**.
+
+Opcional: pra restringir a coleta a modalidades específicas (mais rápido,
+ver seção 5), adicione uma **Repository variable** (mesma tela, aba
+"Variables") chamada `COLETOR_MODALIDADES` com o valor desejado (ex: `6`).
+
+Isso substitui completamente a necessidade de rodar `collector_pncp.py`
+manualmente ou via Agendador de Tarefas do Windows — mas esse caminho
+local continua funcionando (seção 3.3) se você preferir, ou quiser rodar
+uma coleta pontual sem esperar o agendamento.
 
 ## 8. Depois do deploy
 
