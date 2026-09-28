@@ -2,14 +2,13 @@
 
 Plataforma full stack de monitoramento de licitações públicas brasileiras. O sistema coleta dados do **Portal Nacional de Contratações Públicas (PNCP)**, aplica um motor de pontuação de relevância por empresa e organiza tudo em um fluxo de trabalho completo — da descoberta da oportunidade até o acompanhamento da equipe responsável, passando por favoritos, pipeline de decisão, documentos e indicadores.
 
-Projeto pessoal desenvolvido para aprofundar conhecimentos de desenvolvimento Full Stack: back-end com Python/FastAPI, front-end com React, integração com API pública, autenticação multiempresa e práticas de engenharia de software (testes automatizados, observabilidade, qualidade de código e workflow de Git baseado em Issue → Branch → PR).
+Projeto pessoal desenvolvido para aprofundar conhecimentos de desenvolvimento Full Stack: back-end com Python/FastAPI, front-end com React, integração com API pública, arquitetura multiempresa e práticas de engenharia de software (testes automatizados, observabilidade, qualidade de código e workflow de Git baseado em Issue → Branch → PR).
 
 ---
 
 ## ✨ Funcionalidades
 
-### 👤 Autenticação e Equipe
-- Cadastro, login e autenticação via JWT
+### 👥 Equipe
 - Empresas com múltiplos usuários (multiempresa/multiusuário)
 - Sincronização de dados da empresa por CNPJ
 - Convite de membros para a equipe
@@ -57,7 +56,6 @@ Critérios podem ser editados e excluídos a qualquer momento.
 - Python + FastAPI
 - SQLAlchemy + SQLite
 - Pydantic
-- JWT (`python-jose`) + `bcrypt` para autenticação
 - `openpyxl` / `fpdf2` para exportação (Excel/PDF)
 - Uvicorn
 
@@ -209,7 +207,7 @@ duas antes de qualquer merge em `main`. Detalhes em [`CLAUDE.md`](CLAUDE.md).
 Este projeto foi desenvolvido com os seguintes objetivos:
 
 - Praticar desenvolvimento Full Stack de ponta a ponta (API + interface)
-- Construir APIs REST com FastAPI e autenticação JWT multiempresa
+- Construir APIs REST com FastAPI, com arquitetura multiempresa
 - Consumir e tratar dados de uma API pública real (PNCP)
 - Desenvolver interfaces modernas e responsivas com React
 - Aplicar boas práticas de engenharia: testes automatizados (unitários, integração, E2E e mutação), observabilidade e análise estática de arquitetura
@@ -222,7 +220,6 @@ Este projeto foi desenvolvido com os seguintes objetivos:
 
 O sistema possui:
 
-- Login e cadastro
 - Dashboard de licitações
 - Gerenciamento de critérios
 - Pipeline de oportunidades, favoritos e comentários
@@ -233,6 +230,7 @@ O sistema possui:
 
 ## Próximos Passos
 
+- Sistema de autenticação/login de usuários
 - Hospedagem do sistema em produção (backend + coletor + notificações rodando na nuvem, não só localmente)
 - Notificações por WhatsApp
 - Melhorias na experiência do usuário
