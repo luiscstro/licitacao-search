@@ -139,8 +139,18 @@ class Licitacao(Base):
     # - texto_busca: objeto + órgão + cidade + informação complementar.
     #   Mais abrangente — usado só na busca LIVRE, onde faz sentido
     #   encontrar por nome de cidade ou órgão também.
-    texto_busca_objeto = Column(Text, default="", index=True)
-    texto_busca = Column(Text, default="", index=True)
+    #
+    # SEM index=True de propósito: os dois só são lidos em Python
+    # (scoring.py) ou filtrados com .contains() (LIKE '%termo%', main.py) —
+    # nenhum dos dois usa um índice B-tree pra nada (só acelera
+    # LIKE 'prefixo%'). Um índice aqui só causa problema: no Postgres,
+    # licitações com informacao_complementar longa geram um texto_busca
+    # maior que o limite de tamanho de linha de índice B-tree
+    # (ProgramLimitExceeded: "index row size ... exceeds ... maximum"),
+    # quebrando o INSERT inteiro — bug real encontrado migrando dados pro
+    # Postgres (SQLite não tem esse limite, por isso nunca apareceu antes).
+    texto_busca_objeto = Column(Text, default="")
+    texto_busca = Column(Text, default="")
 
     primeira_vez_vista = Column(DateTime, default=datetime.utcnow)
     ultima_vez_vista = Column(DateTime, default=datetime.utcnow)
