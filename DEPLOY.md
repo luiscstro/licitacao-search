@@ -53,21 +53,46 @@ Frontend (**New** → **Static Site**, conecte o repo):
 
 ## 3. Popular a base com licitações (seed inicial)
 
-O coletor (`collector_pncp.py`) não roda sozinho no Render — assim como
-localmente, ele precisa ser executado (o agendamento automático fica por
-sua conta: ver seção 5). Pra ter dados na primeira vez que abrir a URL:
+O coletor (`collector_pncp.py`) não roda sozinho no Render — precisa ser
+disparado manualmente (o agendamento automático fica por sua conta: ver
+seção 5). A aba **Shell** do Render é recurso pago — o serviço já vem com
+um jeito de disparar a coleta sem precisar dela: o endpoint
+`POST /admin/coletar-pncp`.
 
-1. No serviço `licittracker-backend`, abra a aba **Shell**.
-2. Rode:
+1. No serviço `licittracker-backend`, abra **Environment** e copie o valor
+   de `ADMIN_TOKEN` (o Render gera automaticamente, via `generateValue` no
+   `render.yaml` — se o serviço já existia antes dessa variável ser
+   adicionada, clique em **Add Environment Variable** e gere um valor você
+   mesmo, ex: `python -c "import secrets; print(secrets.token_hex(24))"`).
+2. Dispare a coleta com uma requisição POST (do seu navegador não dá,
+   precisa ser POST — use `curl`, Postman, ou peça pra eu rodar por você
+   se me passar a URL do backend e o token):
    ```bash
-   python collector_pncp.py
+   curl -X POST https://licittracker-backend.onrender.com/admin/coletar-pncp \
+     -H "x-admin-token: SEU_ADMIN_TOKEN_AQUI"
    ```
-3. Isso coleta o Brasil inteiro pra várias modalidades — pode levar bastante
-   tempo (o próprio script avisa: "rodar de madrugada ajuda"). Se quiser um
-   teste mais rápido pra confirmar que está tudo funcionando antes de rodar
-   a coleta completa, edite temporariamente `MODALIDADES` no topo do
-   script pra deixar só uma modalidade descomentada, rode, confira que
-   apareceu no site, e depois rode de novo com todas.
+   A resposta (`202`) confirma que a coleta começou em segundo plano — a
+   requisição não fica esperando ela terminar.
+3. Acompanhe o progresso pelos **Logs** do serviço no Render, ou consultando:
+   ```bash
+   curl https://licittracker-backend.onrender.com/admin/coletar-pncp/status \
+     -H "x-admin-token: SEU_ADMIN_TOKEN_AQUI"
+   ```
+
+Por padrão o coletor busca 5 modalidades, Brasil inteiro — na prática isso
+leva **várias horas** (o PNCP aplica rate limit com frequência; testado ao
+vivo: só a modalidade "Pregão Eletrônico" sozinha já passou de 30 minutos).
+**Pra uma demo no ar rápido**, adicione a variável de ambiente
+`COLETOR_MODALIDADES=6` no serviço `licittracker-backend` antes de disparar
+a coleta — isso restringe a coleta só a "Pregão - Eletrônico" (a modalidade
+mais comum, suficiente pra mostrar a plataforma funcionando de ponta a
+ponta), sem precisar editar nenhum arquivo. Pra rodar mais de uma, separe
+por vírgula (ex: `6,7`). Remova a variável (ou apague o valor) depois pra
+voltar a coletar todas as modalidades nas próximas rodadas.
+
+Se preferir a aba Shell (planos pagos), o comando é o mesmo de sempre:
+`python collector_pncp.py` — a variável `COLETOR_MODALIDADES` funciona do
+mesmo jeito nesse caminho também.
 
 ## 4. Limitação importante: disco efêmero no plano free
 
@@ -89,13 +114,25 @@ Postgres — nenhum outro código muda.
 ## 5. Coleta diária automática (opcional)
 
 Localmente isso é feito pelo Agendador de Tarefas do Windows
-(`rodar_coletor_diario.bat`). No Render, a forma equivalente é um **Cron
-Job** (**New** → **Cron Job**, mesmo Root Directory/Build Command do
-backend, Start Command `python collector_pncp.py`, schedule ex: `0 6 * * *`
-pra rodar 06:00 UTC todo dia). Só funciona corretamente se o backend já
-estiver usando Postgres (seção 4) — com SQLite, o Cron Job roda num
-container separado do backend e os dois não compartilham o mesmo arquivo de
-banco, então o que ele coletar não apareceria no site.
+(`rodar_coletor_diario.bat`). No Render:
+
+**Sem custo, usando o endpoint admin da seção 3**: qualquer serviço externo
+de "ping agendado" funciona, já que é só uma chamada POST — ex:
+[cron-job.org](https://cron-job.org) (grátis): cadastre uma URL
+`https://licittracker-backend.onrender.com/admin/coletar-pncp`, método
+`POST`, header `x-admin-token: SEU_ADMIN_TOKEN`, agendado pra uma vez por
+dia. Como esse endpoint roda o coletor *dentro do mesmo serviço/processo*
+do backend, ele compartilha o mesmo arquivo SQLite — funciona mesmo sem
+Postgres (mas continua sujeito à limitação da seção 4: um redeploy zera a
+base de novo).
+
+**Com plano pago**: um **Cron Job** do Render (**New** → **Cron Job**,
+mesmo Root Directory/Build Command do backend, Start Command
+`python collector_pncp.py`, schedule ex: `0 6 * * *`) só funciona
+corretamente se o backend já estiver usando Postgres (seção 4) — com
+SQLite, o Cron Job roda num container separado do backend e os dois não
+compartilham o mesmo arquivo de banco, então o que ele coletar não
+apareceria no site.
 
 ## 6. Depois do deploy
 

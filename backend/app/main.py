@@ -7,13 +7,18 @@ Pra rodar localmente:
 Depois abra http://127.0.0.1:8000/docs
 """
 
+import hmac
 import io
+import os
+import subprocess
+import sys
+import threading
 import uuid
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -1036,6 +1041,64 @@ def status_pncp(db: Session = Depends(get_db), usuario: models.User = Depends(au
         pncp_instavel=pncp_instavel,
         dados_desatualizados=dados_desatualizados,
     )
+
+
+# ============================================================
+# Admin: disparo remoto do coletor do PNCP
+# ============================================================
+#
+# Existe porque em alguns ambientes de deploy (ex: plano free do Render) não
+# há acesso a Shell pra rodar `python collector_pncp.py` manualmente — esse
+# endpoint permite disparar a mesma coleta por uma chamada HTTP comum.
+#
+# Protegido por ADMIN_TOKEN (variável de ambiente própria, não a
+# autenticação normal de usuário): é uma ação operacional global — não faz
+# sentido amarrar a uma conta/empresa específica — e configurável só pelas
+# variáveis de ambiente do serviço, sem precisar de Shell.
+
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
+_coleta_pncp_lock = threading.Lock()
+_coleta_pncp_em_andamento = False
+
+
+def _exigir_admin_token(x_admin_token: str | None = Header(default=None)) -> None:
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=503, detail="ADMIN_TOKEN não configurado neste ambiente")
+    if not x_admin_token or not hmac.compare_digest(x_admin_token, ADMIN_TOKEN):
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+
+def _rodar_coletor_em_background() -> None:
+    global _coleta_pncp_em_andamento
+    try:
+        subprocess.run(
+            [sys.executable, "collector_pncp.py"],
+            cwd=Path(__file__).resolve().parent.parent,
+            check=False,
+        )
+    finally:
+        with _coleta_pncp_lock:
+            _coleta_pncp_em_andamento = False
+
+
+@app.post("/admin/coletar-pncp", status_code=202)
+def disparar_coleta_pncp(_: None = Depends(_exigir_admin_token)):
+    global _coleta_pncp_em_andamento
+    with _coleta_pncp_lock:
+        if _coleta_pncp_em_andamento:
+            raise HTTPException(status_code=409, detail="Já tem uma coleta em andamento")
+        _coleta_pncp_em_andamento = True
+
+    threading.Thread(target=_rodar_coletor_em_background, daemon=True).start()
+    return {
+        "status": "iniciado",
+        "mensagem": "Coleta disparada em segundo plano. Acompanhe pelos logs do serviço ou por GET /status/pncp.",
+    }
+
+
+@app.get("/admin/coletar-pncp/status")
+def status_coleta_pncp(_: None = Depends(_exigir_admin_token)):
+    return {"em_andamento": _coleta_pncp_em_andamento}
 
 
 @app.get("/")
