@@ -28,9 +28,18 @@ class TestNormalizarDatabaseUrl:
 
 
 def test_driver_psycopg2_resolve_para_url_postgresql_bare():
-    """Confirma que uma DATABASE_URL "postgresql://..." (formato que Neon e
-    a maioria dos provedores fornecem, sem sufixo de driver) resolve pro
-    driver psycopg2-binary instalado — sem precisar o usuário editar a
-    connection string pra "postgresql+psycopg://..." ou parecido."""
+    """Confirma que uma DATABASE_URL "postgresql://..." (formato mais comum,
+    sem sufixo de driver) resolve pro driver psycopg2-binary instalado —
+    sem precisar o usuário editar a connection string."""
     engine = create_engine("postgresql://usuario:senha@localhost:5432/banco")
     assert engine.dialect.driver == "psycopg2"
+
+
+def test_driver_psycopg_resolve_para_url_com_sufixo_psycopg():
+    """Confirma que uma DATABASE_URL "postgresql+psycopg://..." (formato que
+    o Neon também oferece) resolve pro driver psycopg (v3) instalado — bug
+    real encontrado em produção: só tínhamos psycopg2-binary instalado, e
+    o deploy quebrou com "ModuleNotFoundError: No module named 'psycopg'"
+    porque a URL usada tinha esse sufixo."""
+    engine = create_engine("postgresql+psycopg://usuario:senha@localhost:5432/banco")
+    assert engine.dialect.driver == "psycopg"
