@@ -740,6 +740,37 @@ a:focus-visible {
 }
 
 /* ============================================================
+   Aviso de status do coletor do PNCP (faixa abaixo da navbar)
+   ============================================================ */
+
+.aviso-pncp {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 24px;
+  font-size: 13px;
+  line-height: 1.55;
+  animation: subir var(--duracao-padrao) cubic-bezier(0.2, 0.6, 0.3, 1) both;
+}
+
+.aviso-pncp svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.aviso-pncp.instavel {
+  background: var(--selo-gold-soft);
+  color: var(--selo-gold-deep);
+  border-bottom: 1px solid var(--selo-gold);
+}
+
+.aviso-pncp.desatualizado {
+  background: var(--paper-card);
+  color: var(--slate);
+  border-bottom: 1px solid var(--slate-line);
+}
+
+/* ============================================================
    Tela de autenticação
    ============================================================ */
 

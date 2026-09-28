@@ -213,6 +213,24 @@ class RefreshToken(Base):
     usuario = relationship("User")
 
 
+class EstadoColetor(Base):
+    """Registro de cada execução do coletor do PNCP (`collector_pncp.py`) —
+    uma linha por rodada, não uma linha só sobrescrita, pra dar histórico.
+    Usado pelo endpoint /status/pncp pra avisar o usuário quando o PNCP
+    está instável/fora do ar, em vez de deixar a base parecer "sem
+    novidades" silenciosamente quando na verdade a coleta falhou."""
+
+    __tablename__ = "estado_coletor"
+
+    id = Column(Integer, primary_key=True, index=True)
+    executado_em = Column(DateTime, default=datetime.utcnow, index=True)
+    sucesso = Column(Boolean, default=True)
+    total_modalidades = Column(Integer, default=0)
+    modalidades_com_falha = Column(Integer, default=0)
+    total_coletado = Column(Integer, default=0)
+    mensagem = Column(Text, default="")
+
+
 CATEGORIAS_DOCUMENTO = ["juridica", "fiscal", "trabalhista", "economico_financeira", "tecnica", "outra"]
 LIMIARES_ALERTA_VENCIMENTO = [30, 15, 7, 1, 0]
 

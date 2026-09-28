@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "./api";
+import AvisoPncp from "./components/AvisoPncp";
 import EsqueletoPagina from "./components/EsqueletoPagina";
 import { LogoCompacto } from "./components/Logo";
 import PainelAjuda from "./components/PainelAjuda";
@@ -161,6 +162,8 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      <AvisoPncp />
 
       <main className="conteudo">
         <div key={pagina} className="conteudo-pagina">

@@ -94,6 +94,13 @@ class ErroRequisicaoInvalida(Exception):
     pass
 
 
+# Preenchido sempre que uma página esgota todas as tentativas de retry
+# (buscar_pagina) — sinal de instabilidade real do PNCP, não um problema
+# pontual de uma modalidade específica. Lido no final de main() pra decidir
+# se a rodada foi "sucesso" e alimentar /status/pncp (ver app/main.py).
+FALHAS_PERSISTENTES_PNCP: list[str] = []
+
+
 def buscar_pagina(
     session: requests.Session, modalidade: int, data_final: str, pagina: int, uf: str | None
 ) -> dict:
@@ -162,6 +169,7 @@ def _coletar_por_uf(session: requests.Session, codigo_modalidade: int, data_fina
             data = buscar_pagina(session, codigo_modalidade, data_final, pagina, uf)
         except RuntimeError as erro:
             print(f"  ✗ Desistindo de UF={uf}: {erro}")
+            FALHAS_PERSISTENTES_PNCP.append(f"modalidade={codigo_modalidade}, uf={uf}: {erro}")
             break
 
         if not data:
@@ -397,6 +405,32 @@ def marcar_inativas(db: Session, todos_ids_vistos: set):
     return marcadas
 
 
+def _registrar_estado_coletor(
+    *, sucesso: bool, total_modalidades: int, modalidades_com_falha: int, total_coletado: int, mensagem: str
+) -> None:
+    """Grava o resultado dessa rodada — lido pelo endpoint GET /status/pncp
+    pra avisar o usuário quando o PNCP está instável/fora do ar, em vez de
+    deixar a base parecer "sem novidades" silenciosamente. Usa uma conexão
+    própria (não reaproveita a `db` da coleta) pra não propagar um estado de
+    sessão ruim se a coleta tiver falhado no meio de uma transação."""
+    registro_db = SessionLocal()
+    try:
+        registro_db.add(
+            models.EstadoColetor(
+                sucesso=sucesso,
+                total_modalidades=total_modalidades,
+                modalidades_com_falha=modalidades_com_falha,
+                total_coletado=total_coletado,
+                mensagem=mensagem[:2000],
+            )
+        )
+        registro_db.commit()
+    except Exception as erro:
+        print(f"  ⚠ Não foi possível registrar o estado do coletor: {erro}")
+    finally:
+        registro_db.close()
+
+
 def main():
     Base.metadata.create_all(bind=engine)
 
@@ -413,6 +447,7 @@ def main():
     db = SessionLocal()
     todos_ids_vistos = set()
     inicio = time.time()
+    erro_fatal = None
 
     try:
         for codigo, nome in MODALIDADES.items():
@@ -420,6 +455,7 @@ def main():
                 parciais = coletar_modalidade(session, codigo, nome, data_final)
             except Exception as erro:  # não deixa uma modalidade travar as outras
                 print(f"  ✗ Erro inesperado em modalidade={nome}: {erro}")
+                FALHAS_PERSISTENTES_PNCP.append(f"modalidade={nome}: {erro}")
                 parciais = {}
 
             # Salva JÁ, assim que essa modalidade termina — não espera as
@@ -437,8 +473,18 @@ def main():
         marcadas = marcar_inativas(db, todos_ids_vistos)
         print(f"Licitações marcadas como inativas (sumiram desde a última coleta): {marcadas}")
         print("Base compartilhada de licitações atualizada com sucesso.")
+    except Exception as erro:
+        erro_fatal = erro
+        raise
     finally:
         db.close()
+        _registrar_estado_coletor(
+            sucesso=erro_fatal is None and not FALHAS_PERSISTENTES_PNCP,
+            total_modalidades=len(MODALIDADES),
+            modalidades_com_falha=len(FALHAS_PERSISTENTES_PNCP),
+            total_coletado=len(todos_ids_vistos),
+            mensagem=str(erro_fatal) if erro_fatal else "; ".join(FALHAS_PERSISTENTES_PNCP[:5]),
+        )
 
 
 if __name__ == "__main__":

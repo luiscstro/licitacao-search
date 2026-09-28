@@ -997,6 +997,47 @@ def remover_documento(
     db.commit()
 
 
+# ============================================================
+# Status do coletor do PNCP
+# ============================================================
+
+# Coleta roda uma vez por dia — acima disso (1 dia + folga), tratamos como
+# "base pode estar desatualizada", mesmo sem uma falha registrada (o
+# agendamento pode simplesmente não ter rodado).
+LIMITE_HORAS_SEM_COLETA = 30
+
+
+@app.get("/status/pncp", response_model=schemas.EstadoColetorSaida)
+def status_pncp(db: Session = Depends(get_db), usuario: models.User = Depends(auth.usuario_atual)):
+    ultima = db.query(models.EstadoColetor).order_by(models.EstadoColetor.executado_em.desc()).first()
+    ultima_com_sucesso = (
+        db.query(models.EstadoColetor)
+        .filter(models.EstadoColetor.sucesso == True)  # noqa: E712
+        .order_by(models.EstadoColetor.executado_em.desc())
+        .first()
+    )
+
+    horas_desde_sucesso = None
+    if ultima_com_sucesso:
+        horas_desde_sucesso = (
+            datetime.utcnow() - ultima_com_sucesso.executado_em
+        ).total_seconds() / 3600
+
+    pncp_instavel = ultima is not None and not ultima.sucesso
+    dados_desatualizados = pncp_instavel or (
+        horas_desde_sucesso is not None and horas_desde_sucesso > LIMITE_HORAS_SEM_COLETA
+    )
+
+    return schemas.EstadoColetorSaida(
+        ultima_execucao_em=ultima.executado_em if ultima else None,
+        ultima_execucao_com_sucesso=ultima.sucesso if ultima else None,
+        ultima_coleta_com_sucesso_em=ultima_com_sucesso.executado_em if ultima_com_sucesso else None,
+        horas_desde_ultima_coleta_com_sucesso=horas_desde_sucesso,
+        pncp_instavel=pncp_instavel,
+        dados_desatualizados=dados_desatualizados,
+    )
+
+
 @app.get("/")
 def raiz():
     return {"status": "ok", "mensagem": "API do Buscador de Licitações no ar. Veja /docs"}
