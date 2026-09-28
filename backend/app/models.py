@@ -196,6 +196,23 @@ class Oportunidade(Base):
     atualizado_por = relationship("User")
 
 
+class RefreshToken(Base):
+    """Refresh token revogável usado pra renovar o access token (JWT de vida
+    curta) sem pedir login de novo. Guardamos só o hash — nunca o token em
+    texto puro — igual senha; se o banco vazar, os tokens continuam inúteis."""
+
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    expira_em = Column(DateTime, nullable=False)
+    revogado_em = Column(DateTime, nullable=True)
+
+    usuario = relationship("User")
+
+
 CATEGORIAS_DOCUMENTO = ["juridica", "fiscal", "trabalhista", "economico_financeira", "tecnica", "outra"]
 LIMIARES_ALERTA_VENCIMENTO = [30, 15, 7, 1, 0]
 

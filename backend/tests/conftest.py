@@ -21,7 +21,7 @@ os.close(_db_fd)
 os.environ["DATABASE_URL"] = f"sqlite:///{_db_path}"
 os.environ["SECRET_KEY"] = "chave-fixa-de-teste-nao-usar-em-producao"
 
-from app import main  # noqa: E402 (import precisa vir depois de setar as env vars acima)
+from app import auth, main  # noqa: E402 (import precisa vir depois de setar as env vars acima)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -31,6 +31,15 @@ def _cleanup_db_file():
         os.remove(_db_path)
     except OSError:
         pass
+
+
+@pytest.fixture(autouse=True)
+def _limpar_rate_limit_login():
+    """O rate limiter de login é estado global do módulo (dict em memória) —
+    sem isolar, tentativas falhas de um teste vazariam pro próximo."""
+    auth._tentativas_login.clear()
+    yield
+    auth._tentativas_login.clear()
 
 
 @pytest.fixture
