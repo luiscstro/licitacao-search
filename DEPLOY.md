@@ -62,12 +62,41 @@ sua conta: ver seção 5). Pra ter dados na primeira vez que abrir a URL:
    ```bash
    python collector_pncp.py
    ```
-3. Isso coleta o Brasil inteiro pra várias modalidades — pode levar bastante
-   tempo (o próprio script avisa: "rodar de madrugada ajuda"). Se quiser um
-   teste mais rápido pra confirmar que está tudo funcionando antes de rodar
-   a coleta completa, edite temporariamente `MODALIDADES` no topo do
-   script pra deixar só uma modalidade descomentada, rode, confira que
-   apareceu no site, e depois rode de novo com todas.
+
+Com as 5 modalidades ativas (padrão em `MODALIDADES`, no topo do script),
+isso coleta o Brasil inteiro e pode levar **várias horas** — o PNCP aplica
+rate limit com frequência, e cada modalidade sozinha já passa de centenas
+de páginas nacionalmente (testado: só "Pregão - Eletrônico" levou mais de
+30 minutos). O próprio script já avisa: "rodar de madrugada ajuda".
+
+**Pra ter uma demo no ar rápido (ex: prazo de candidatura), reduza o
+escopo pra uma modalidade só antes de rodar.** Em `MODALIDADES`, comente
+todas as linhas exceto `6: "Pregão - Eletrônico"` — é a modalidade mais
+comum/representativa, então já dá pra mostrar a plataforma funcionando de
+ponta a ponta:
+
+```python
+MODALIDADES = {
+    # 1: "Leilão - Eletrônico",
+    # 2: "Diálogo Competitivo",
+    # 3: "Concurso",
+    # 4: "Concorrência - Eletrônica",
+    # 5: "Concorrência - Presencial",
+    6: "Pregão - Eletrônico",
+    # 7: "Pregão - Presencial",
+    # 8: "Dispensa de Licitação",
+    # 10: "Manifestação de Interesse",
+    # 12: "Credenciamento",
+    # 9: "Inexigibilidade",
+    # 11: "Pré-qualificação",
+    # 13: "Leilão - Presencial",
+}
+```
+
+Isso ainda leva uns 30-40 minutos (é o Brasil inteiro, só que numa
+modalidade), mas já é o suficiente pra ter uma base real pra demonstrar.
+Depois, se quiser a base completa, descomente o resto e rode de novo — o
+coletor atualiza o que já existe, não duplica nada.
 
 ## 4. Limitação importante: disco efêmero no plano free
 
