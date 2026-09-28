@@ -185,6 +185,13 @@ http://localhost:5173
 
 ---
 
+## Deploy
+
+Passo a passo pra publicar backend e frontend gratuitamente (Render) em
+[`DEPLOY.md`](DEPLOY.md).
+
+---
+
 ## Integração com o PNCP
 
 O projeto utiliza os dados disponibilizados pelo Portal Nacional de Contratações Públicas (PNCP).

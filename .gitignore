@@ -11,6 +11,12 @@ log_notificacoes.txt
 backend/uploads/
 .claude/
 
+# Variáveis de ambiente locais (segredos/URLs específicas da máquina) —
+# só o .env.example fica versionado.
+.env
+.env.local
+*.env.local
+
 # Backend dev tooling artifacts (ruff/pytest/mutmut)
 backend/.venv/
 backend/venv/
