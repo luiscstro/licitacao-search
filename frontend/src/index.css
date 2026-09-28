@@ -1192,6 +1192,7 @@ a:focus-visible {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   box-shadow: var(--sombra-lg);
   animation: subir 180ms cubic-bezier(0.2, 0.6, 0.3, 1);
 }
