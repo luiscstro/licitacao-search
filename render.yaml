@@ -21,6 +21,10 @@ services:
         value: 3.12.7
       - key: SECRET_KEY
         generateValue: true
+      # Autentica POST /admin/coletar-pncp — dispara o coletor sem precisar
+      # de Shell (recurso pago no plano free). Veja DEPLOY.md seção 3.
+      - key: ADMIN_TOKEN
+        generateValue: true
 
   - type: web
     name: licittracker-frontend

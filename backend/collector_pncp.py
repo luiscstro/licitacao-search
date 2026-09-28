@@ -19,6 +19,7 @@ Como usar:
     python3 collector_pncp.py
 """
 
+import os
 import sys
 import time
 from datetime import date, timedelta
@@ -67,6 +68,15 @@ MODALIDADES = {
     # 13: "Leilão - Presencial",
 }
 # Pra reativar alguma, é só remover o "#" da linha correspondente e rodar de novo.
+
+# Restringe MODALIDADES em tempo de execução, sem editar o arquivo — útil
+# em ambientes sem acesso a Shell (ex: plano free do Render), onde a única
+# forma de configurar é por variável de ambiente. Ex: COLETOR_MODALIDADES=6
+# roda só Pregão Eletrônico; "6,7" roda Pregão Eletrônico e Presencial.
+_MODALIDADES_OVERRIDE = os.getenv("COLETOR_MODALIDADES")
+if _MODALIDADES_OVERRIDE:
+    _codigos_ativos = {int(c.strip()) for c in _MODALIDADES_OVERRIDE.split(",") if c.strip()}
+    MODALIDADES = {codigo: nome for codigo, nome in MODALIDADES.items() if codigo in _codigos_ativos}
 
 # Se True, busca o Brasil inteiro numa passada só por modalidade (mais
 # rápido — menos requisições). Se False, faz um loop por UF (mais lento,
