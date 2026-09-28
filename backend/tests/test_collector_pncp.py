@@ -58,3 +58,50 @@ def test_registrar_estado_coletor_trunca_mensagem_muito_longa():
 
     estado = _ultimo_estado()
     assert len(estado.mensagem) <= 2000
+
+
+def _contratacao_falsa(numero_controle: str) -> dict:
+    return {
+        "numeroControlePNCP": numero_controle,
+        "orgaoEntidade": {"cnpj": "12345678000199", "razaosocial": "Órgão Teste"},
+        "unidadeOrgao": {"municipioNome": "Cidade Teste", "ufSigla": "MA"},
+        "objetoCompra": "objeto de teste",
+        "anoCompra": 2026,
+        "sequencialCompra": 1,
+    }
+
+
+def test_salvar_licitacoes_comita_em_lotes_nao_so_no_final(monkeypatch):
+    """Bug real: um commit só no final perdia a modalidade inteira se a
+    conexão caísse no meio de uma gravação grande (aconteceu com Postgres
+    remoto). Commitando em lotes, uma queda no meio perde só o lote atual."""
+    monkeypatch.setattr(collector_pncp, "TAMANHO_LOTE_COMMIT", 3)
+
+    db = SessionLocal()
+    try:
+        contador_commits = {"chamadas": 0}
+        commit_original = db.commit
+
+        def commit_contado():
+            contador_commits["chamadas"] += 1
+            commit_original()
+
+        monkeypatch.setattr(db, "commit", commit_contado)
+
+        contratacoes = {
+            f"PNCP-lote-teste-{i}": _contratacao_falsa(f"PNCP-lote-teste-{i}") for i in range(7)
+        }
+        collector_pncp.salvar_licitacoes(db, contratacoes)
+
+        # 7 registros, lote de 3 -> commits nos índices 3 e 6, mais o commit
+        # final (índice 7, que não é múltiplo de 3) = 3 commits no total.
+        assert contador_commits["chamadas"] == 3
+
+        salvos = (
+            db.query(models.Licitacao)
+            .filter(models.Licitacao.numero_controle.like("PNCP-lote-teste-%"))
+            .count()
+        )
+        assert salvos == 7
+    finally:
+        db.close()
