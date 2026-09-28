@@ -1,6 +1,7 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
+psycopg2-binary  # driver Postgres — usado só quando DATABASE_URL aponta pra um Postgres (ver app/database.py)
 python-jose[cryptography]
 bcrypt
 python-multipart
