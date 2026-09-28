@@ -98,11 +98,29 @@ def registrar(dados: schemas.UsuarioCriar, db: Session = Depends(get_db)):
 
 @app.post("/auth/login", response_model=schemas.Token)
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    auth.verificar_rate_limit_login(form.username)
+
     usuario = db.query(models.User).filter(models.User.email == form.username).first()
     if not usuario or not auth.verificar_senha(form.password, usuario.senha_hash):
+        auth.registrar_tentativa_login_falha(form.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail ou senha incorretos")
+
+    auth.limpar_tentativas_login(form.username)
     token = auth.criar_token({"sub": usuario.email})
-    return {"access_token": token, "token_type": "bearer"}
+    refresh_token = auth.criar_refresh_token(db, usuario)
+    return {"access_token": token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+@app.post("/auth/refresh", response_model=schemas.Token)
+def renovar_token(dados: schemas.RefreshTokenEntrada, db: Session = Depends(get_db)):
+    usuario, novo_refresh_token = auth.validar_e_rotacionar_refresh_token(db, dados.refresh_token)
+    novo_access_token = auth.criar_token({"sub": usuario.email})
+    return {"access_token": novo_access_token, "refresh_token": novo_refresh_token, "token_type": "bearer"}
+
+
+@app.post("/auth/logout", status_code=204)
+def logout(dados: schemas.RefreshTokenEntrada, db: Session = Depends(get_db)):
+    auth.revogar_refresh_token(db, dados.refresh_token)
 
 
 @app.get("/auth/me", response_model=schemas.UsuarioSaida)
