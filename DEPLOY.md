@@ -51,90 +51,107 @@ Frontend (**New** → **Static Site**, conecte o repo):
 | Publish Directory | `dist` |
 | Variável `VITE_API_BASE` | a URL pública do backend (do passo anterior) |
 
-## 3. Popular a base com licitações (seed inicial)
+## 3. IMPORTANTE: o PNCP bloqueia conexões saindo do Render
 
-O coletor (`collector_pncp.py`) não roda sozinho no Render — precisa ser
-disparado manualmente (o agendamento automático fica por sua conta: ver
-seção 5). A aba **Shell** do Render é recurso pago — o serviço já vem com
-um jeito de disparar a coleta sem precisar dela: o endpoint
-`POST /admin/coletar-pncp`.
+Testando de verdade, descobri que **o PNCP recusa conexão (connection
+timeout, não é rate limit) de requisições vindas dos servidores do
+Render** — provavelmente bloqueio de faixa de IP de provedor de nuvem,
+comum em órgãos públicos brasileiros. Isso significa que **o coletor nunca
+vai funcionar rodando a partir do Render**, não importa como (endpoint
+admin, Shell, Cron Job) — o problema é de rede, não de código, e nenhuma
+dessas formas de disparo resolve.
 
-1. No serviço `licittracker-backend`, abra **Environment** e copie o valor
-   de `ADMIN_TOKEN` (o Render gera automaticamente, via `generateValue` no
-   `render.yaml` — se o serviço já existia antes dessa variável ser
-   adicionada, clique em **Add Environment Variable** e gere um valor você
-   mesmo, ex: `python -c "import secrets; print(secrets.token_hex(24))"`).
-2. Dispare a coleta com uma requisição POST (do seu navegador não dá,
-   precisa ser POST — use `curl`, Postman, ou peça pra eu rodar por você
-   se me passar a URL do backend e o token):
-   ```bash
-   curl -X POST https://licittracker-backend.onrender.com/admin/coletar-pncp \
-     -H "x-admin-token: SEU_ADMIN_TOKEN_AQUI"
-   ```
-   A resposta (`202`) confirma que a coleta começou em segundo plano — a
-   requisição não fica esperando ela terminar.
-3. Acompanhe o progresso pelos **Logs** do serviço no Render, ou consultando:
-   ```bash
-   curl https://licittracker-backend.onrender.com/admin/coletar-pncp/status \
-     -H "x-admin-token: SEU_ADMIN_TOKEN_AQUI"
-   ```
+O endpoint `POST /admin/coletar-pncp` (seção 4) continua existindo e pode
+funcionar em outro provedor que o PNCP não bloqueie, mas **no Render,
+especificamente, não use ele pra coletar** — só serve pra outros ambientes.
+
+A solução: usar Postgres (acessível pela rede) em vez de SQLite (arquivo
+local), e rodar o coletor **na sua própria máquina** (que consegue falar
+com o PNCP normalmente — testado, funciona) apontando pro mesmo Postgres
+que o backend publicado usa. O backend nunca precisa falar com o PNCP
+diretamente; só lê do banco.
+
+### 3.1. Criar um Postgres gratuito (Neon)
+
+1. Crie uma conta em <https://neon.tech> (grátis, sem cartão).
+2. **Create a project** → dê um nome (ex: `licittracker`) → crie.
+3. Copie a **Connection string** que o Neon mostra (formato
+   `postgresql://usuario:senha@host/banco?sslmode=require`).
+
+### 3.2. Apontar o backend do Render pra esse Postgres
+
+1. No serviço `licittracker-backend` → **Environment** → **Add Environment
+   Variable**.
+2. `DATABASE_URL` = a connection string do Neon (cole exatamente como o
+   Neon deu).
+3. Salve — isso redeploya o serviço automaticamente. Na inicialização, o
+   backend cria as tabelas sozinho nesse Postgres (mesmo mecanismo que já
+   usa pro SQLite).
+
+### 3.3. Rodar o coletor localmente, escrevendo nesse Postgres
+
+Na sua máquina (não no Render):
+
+```bash
+cd backend
+# Windows (PowerShell):
+$env:DATABASE_URL = "postgresql://usuario:senha@host/banco?sslmode=require"
+python collector_pncp.py
+```
+
+Isso roda a coleta local (que já funciona) escrevendo direto no banco que
+o site publicado lê. Repita sempre que quiser atualizar os dados — não
+precisa redeployar nada no Render pra isso.
+
+Pra uma coleta mais rápida (só uma modalidade em vez de 5), defina também
+`COLETOR_MODALIDADES` antes de rodar — ex. no PowerShell:
+`$env:COLETOR_MODALIDADES = "6"` (só "Pregão - Eletrônico"; sem essa
+variável, roda todas). Veja a seção 5.
+
+## 4. Endpoint admin (`POST /admin/coletar-pncp`)
+
+Existe pra disparar o coletor por HTTP em ambientes sem acesso a Shell —
+mas **não funciona no Render** pelo motivo da seção 3 (o PNCP bloqueia
+esse provedor). Documentado aqui só pra quem hospedar o backend em outro
+lugar que o PNCP não bloqueie:
+
+1. Copie o valor de `ADMIN_TOKEN` em **Environment** (o Render gera
+   automaticamente, via `generateValue` no `render.yaml` — se o serviço já
+   existia antes dessa variável ser adicionada, gere um valor você mesmo:
+   `python -c "import secrets; print(secrets.token_hex(24))"`).
+2. `curl -X POST https://SEU-BACKEND/admin/coletar-pncp -H "x-admin-token: SEU_ADMIN_TOKEN"`
+   — resposta `202` confirma que começou em background.
+3. Status: `curl https://SEU-BACKEND/admin/coletar-pncp/status -H "x-admin-token: SEU_ADMIN_TOKEN"`.
+
+## 5. Restringir modalidades pra um seed mais rápido
 
 Por padrão o coletor busca 5 modalidades, Brasil inteiro — na prática isso
 leva **várias horas** (o PNCP aplica rate limit com frequência; testado ao
 vivo: só a modalidade "Pregão Eletrônico" sozinha já passou de 30 minutos).
-**Pra uma demo no ar rápido**, adicione a variável de ambiente
-`COLETOR_MODALIDADES=6` no serviço `licittracker-backend` antes de disparar
-a coleta — isso restringe a coleta só a "Pregão - Eletrônico" (a modalidade
-mais comum, suficiente pra mostrar a plataforma funcionando de ponta a
-ponta), sem precisar editar nenhum arquivo. Pra rodar mais de uma, separe
-por vírgula (ex: `6,7`). Remova a variável (ou apague o valor) depois pra
-voltar a coletar todas as modalidades nas próximas rodadas.
+Defina a variável de ambiente `COLETOR_MODALIDADES` (códigos separados por
+vírgula, ex: `6` ou `6,7`) antes de rodar `collector_pncp.py` — funciona
+tanto localmente quanto no Render (se um dia o bloqueio da seção 3 não se
+aplicar mais). Sem essa variável, roda as 5 modalidades padrão.
 
-Se preferir a aba Shell (planos pagos), o comando é o mesmo de sempre:
-`python collector_pncp.py` — a variável `COLETOR_MODALIDADES` funciona do
-mesmo jeito nesse caminho também.
+## 6. Disco efêmero (SQLite) vs. Postgres
 
-## 4. Limitação importante: disco efêmero no plano free
+Se você pulou a seção 3 e continua no SQLite padrão: no plano free do
+Render, o disco **não é persistente entre deploys** — cada novo deploy
+zera o banco. Com Postgres (seção 3), isso deixa de ser problema — os
+dados sobrevivem a qualquer redeploy, porque vivem fora do container.
 
-O backend usa SQLite (arquivo local) por padrão. No plano free do Render, o
-disco **não é persistente entre deploys** — cada novo deploy começa com o
-banco vazio de novo (é preciso rodar o coletor de novo depois). Restart por
-inatividade (o serviço "dorme" e acorda sozinho) não apaga o disco, só um
-deploy novo apaga.
+## 7. Coleta periódica (opcional)
 
-Isso é aceitável pra uma demo de portfólio, mas se quiser persistência de
-verdade (dados sobrevivendo a redeploys), a forma mais simples é trocar
-pra Postgres — o projeto já foi desenhado pra isso
-(`backend/app/database.py`): basta criar um banco Postgres gratuito (ex:
-[Neon](https://neon.tech) ou o Postgres do próprio Render), adicionar
-`psycopg[binary]` em `backend/requirements.txt`, e definir a variável de
-ambiente `DATABASE_URL` do serviço backend com a connection string do
-Postgres — nenhum outro código muda.
+Como o coletor só pode rodar de um lugar que o PNCP não bloqueie (sua
+própria máquina, ver seção 3.3), o jeito de automatizar isso é o mesmo já
+usado em desenvolvimento: o Agendador de Tarefas do Windows
+(`rodar_coletor_diario.bat`), rodando na sua máquina (ligada no horário
+agendado) com `DATABASE_URL` apontando pro Postgres do Render/Neon em vez
+do SQLite local. Serviços de "cron na nuvem" (cron-job.org, Cron Job do
+Render) só ajudariam se o disparo acontecesse de fora do Render — não é
+o caso hoje.
 
-## 5. Coleta diária automática (opcional)
-
-Localmente isso é feito pelo Agendador de Tarefas do Windows
-(`rodar_coletor_diario.bat`). No Render:
-
-**Sem custo, usando o endpoint admin da seção 3**: qualquer serviço externo
-de "ping agendado" funciona, já que é só uma chamada POST — ex:
-[cron-job.org](https://cron-job.org) (grátis): cadastre uma URL
-`https://licittracker-backend.onrender.com/admin/coletar-pncp`, método
-`POST`, header `x-admin-token: SEU_ADMIN_TOKEN`, agendado pra uma vez por
-dia. Como esse endpoint roda o coletor *dentro do mesmo serviço/processo*
-do backend, ele compartilha o mesmo arquivo SQLite — funciona mesmo sem
-Postgres (mas continua sujeito à limitação da seção 4: um redeploy zera a
-base de novo).
-
-**Com plano pago**: um **Cron Job** do Render (**New** → **Cron Job**,
-mesmo Root Directory/Build Command do backend, Start Command
-`python collector_pncp.py`, schedule ex: `0 6 * * *`) só funciona
-corretamente se o backend já estiver usando Postgres (seção 4) — com
-SQLite, o Cron Job roda num container separado do backend e os dois não
-compartilham o mesmo arquivo de banco, então o que ele coletar não
-apareceria no site.
-
-## 6. Depois do deploy
+## 8. Depois do deploy
 
 Atualize a URL pública no `README.md` e no campo "Website" do repositório
 no GitHub (**Settings** → topo da página, ícone de engrenagem ao lado de
