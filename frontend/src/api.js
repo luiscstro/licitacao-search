@@ -382,4 +382,9 @@ export const api = {
     window.open(url, "_blank");
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   },
+
+  // ---------- Status do coletor do PNCP ----------
+  async statusPncp() {
+    return requisicao("/status/pncp");
+  },
 };
