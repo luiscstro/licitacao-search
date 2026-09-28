@@ -1,7 +1,9 @@
 // URL do backend. Em desenvolvimento, o backend roda em localhost:8000
-// (uvicorn app.main:app --reload). Quando for hospedar de verdade, troque
-// isso pela URL pública do backend (ou use uma variável de ambiente do Vite).
-const API_BASE = "http://127.0.0.1:8000";
+// (uvicorn app.main:app --reload) — sem VITE_API_BASE definida, cai nesse
+// padrão. Em produção, defina VITE_API_BASE (ex: no .env ou nas variáveis de
+// build do Render/Vercel) apontando pra URL pública do backend; o Vite
+// substitui isso em tempo de build (ver frontend/.env.example).
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 function pegarToken() {
   return localStorage.getItem("token");

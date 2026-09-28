@@ -1,0 +1,33 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec) — cria os
+# dois serviços de uma vez via "New" > "Blueprint" no dashboard do Render,
+# apontando pra este repositório. Veja DEPLOY.md pro passo a passo completo
+# (inclusive o fallback manual, caso o blueprint precise de ajuste).
+#
+# IMPORTANTE: VITE_API_BASE abaixo assume que o backend ficará publicado em
+# https://licittracker-backend.onrender.com (nome do serviço abaixo + domínio
+# padrão do Render). Se o Render sufixar o nome por já estar em uso, ajuste
+# esse valor pra URL real do backend antes/depois do primeiro deploy.
+
+services:
+  - type: web
+    name: licittracker-backend
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SECRET_KEY
+        generateValue: true
+
+  - type: web
+    name: licittracker-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        value: https://licittracker-backend.onrender.com
