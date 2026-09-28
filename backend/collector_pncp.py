@@ -328,16 +328,26 @@ def coletar_modalidade(
     return encontradas
 
 
+# Commita em lotes em vez de um commit só no final da modalidade — com
+# banco remoto (Postgres), uma modalidade grande pode ter milhares de
+# registros, e uma conexão que cai no meio (já aconteceu na prática, ex:
+# "SSL connection has been closed unexpectedly" no meio de uma gravação de
+# ~17 mil linhas) perderia a modalidade inteira, mesmo já tendo os dados em
+# memória. Em lotes, só o lote atual se perde.
+TAMANHO_LOTE_COMMIT = 200
+
+
 def salvar_licitacoes(db: Session, contratacoes: dict):
-    """Grava/atualiza um lote de licitações no banco e já comita — chamado
-    UMA VEZ POR MODALIDADE, assim que ela termina de ser coletada. Isso é
-    o que garante que, mesmo se o script cair no meio (erro inesperado,
-    falta de luz, etc), o que já foi coletado com sucesso não se perde."""
+    """Grava/atualiza um lote de licitações no banco, commitando a cada
+    TAMANHO_LOTE_COMMIT registros — chamado UMA VEZ POR MODALIDADE, assim
+    que ela termina de ser coletada. Commits parciais (em vez de um só no
+    final) garantem que, mesmo se a conexão cair no meio, só o lote atual
+    se perde, não a modalidade inteira."""
     from datetime import datetime
 
     agora = datetime.utcnow()
 
-    for numero_controle, c in contratacoes.items():
+    for indice, (numero_controle, c) in enumerate(contratacoes.items(), start=1):
         orgao_info = c.get("orgaoEntidade") or {}
         unidade = c.get("unidadeOrgao") or {}
         cnpj = orgao_info.get("cnpj")
@@ -396,6 +406,9 @@ def salvar_licitacoes(db: Session, contratacoes: dict):
                     ativa=True,
                 )
             )
+
+        if indice % TAMANHO_LOTE_COMMIT == 0:
+            db.commit()
 
     db.commit()
 
