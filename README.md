@@ -1,197 +1,145 @@
 # LicitTracker
 
-Uma plataforma web para monitoramento de licitações públicas de forma personalizada. O sistema permite que usuários criem critérios de busca, acompanhem oportunidades relevantes e visualizem as licitações em um dashboard intuitivo.
+Plataforma full stack de monitoramento de licitações públicas brasileiras. O sistema coleta dados do **Portal Nacional de Contratações Públicas (PNCP)**, aplica um motor de pontuação de relevância por empresa e organiza tudo em um fluxo de trabalho completo — da descoberta da oportunidade até o acompanhamento da equipe responsável, passando por favoritos, pipeline de decisão, documentos e indicadores.
 
-O projeto foi desenvolvido como forma de praticar conceitos de desenvolvimento Full Stack, integração com APIs externas e construção de aplicações web utilizando Python e React.
+Projeto pessoal desenvolvido para aprofundar conhecimentos de desenvolvimento Full Stack: back-end com Python/FastAPI, front-end com React, integração com API pública, autenticação multiempresa e práticas de engenharia de software (testes automatizados, observabilidade, qualidade de código e workflow de Git baseado em Issue → Branch → PR).
 
 ---
 
 ## ✨ Funcionalidades
 
-### 👤 Autenticação
-- Cadastro de usuários
-- Login
-- Autenticação baseada em API
+### 👤 Autenticação e Equipe
+- Cadastro, login e autenticação via JWT
+- Empresas com múltiplos usuários (multiempresa/multiusuário)
+- Sincronização de dados da empresa por CNPJ
+- Convite de membros para a equipe
 
-### 📋 Gerenciamento de critérios
-Cada usuário pode criar seus próprios critérios de monitoramento, definindo:
+### 📋 Critérios de monitoramento
+Cada empresa pode criar seus próprios critérios de busca, definindo:
 
 - Nome do critério
-- Palavra-chave obrigatória
-- Palavras-chave bônus
+- Palavra-chave obrigatória e palavras-chave bônus
 - Valor mínimo e máximo
 - Estados (UFs)
 - Apenas Pregão
 - Modo demonstração
 
-Também é possível:
-
-- Editar critérios
-- Excluir critérios
-
----
+Critérios podem ser editados e excluídos a qualquer momento.
 
 ### 📊 Dashboard de Licitações
-
-O dashboard apresenta as licitações filtradas conforme os critérios cadastrados.
-
-Cada licitação exibe:
-
-- Pontuação de relevância
-- Estado (UF)
-- Cidade
-- Valor estimado
-- Número do processo (PNCP)
-- Link direto para o edital
+- Licitações filtradas e pontuadas conforme os critérios cadastrados (motor de *scoring* de relevância)
+- Estado (UF), cidade, valor estimado, número do processo (PNCP) e link direto para o edital
 - Alerta para licitações próximas do encerramento
+- Visualização de todas as licitações ou apenas as de um critério específico
+- Exportação dos resultados filtrados em CSV, Excel ou PDF
 
-Também é possível visualizar:
+### ⭐ Favoritos e 🗂 Pipeline
+- Marcação de licitações como favoritas para acompanhamento rápido
+- Pipeline (kanban) de oportunidades, com etapas de decisão por licitação
+- Comentários por licitação, para registrar o histórico de análise da equipe
 
-- Todas as licitações
-- Apenas as licitações de um critério específico
+### 📁 Documentos
+- Upload, substituição e histórico de versões de documentos por licitação/empresa
+- Indicadores de completude documental
+
+### 📈 Indicadores
+- Gráficos por UF, modalidade e mês de encerramento sobre o conjunto filtrado (hub de Ferramentas)
+
+### 🔔 Notificações
+- Resumo diário por e-mail das licitações novas que bateram com os critérios de cada empresa
+- Ativação/desativação por usuário
 
 ---
 
 ## 🛠 Tecnologias Utilizadas
 
 ### Backend
-
-- Python
-- FastAPI
-- SQLite
-- SQLAlchemy
+- Python + FastAPI
+- SQLAlchemy + SQLite
 - Pydantic
+- JWT (`python-jose`) + `bcrypt` para autenticação
+- `openpyxl` / `fpdf2` para exportação (Excel/PDF)
 - Uvicorn
 
 ### Frontend
+- React + Vite
+- Recharts (gráficos)
+- Lucide React (ícones)
 
-- React
-- Vite
-- JavaScript
-- CSS
+### Qualidade e observabilidade
+- **Testes**: Pytest (backend) · Vitest + Testing Library (unitário/componentes) · Playwright (E2E) · Stryker (mutation testing)
+- **Lint/formatação**: Ruff (backend) · Biome (frontend)
+- **Arquitetura**: import-linter (backend) · dependency-cruiser + Knip (frontend, dependências não usadas/circulares)
+- **Observabilidade**: OpenTelemetry (tracing) e Sentry (erros), ambos opcionais e zero-config por padrão
+- **Git**: Commitlint + Husky (Conventional Commits), workflow Issue → Branch → PR
 
 ### Integrações
-
 - Portal Nacional de Contratações Públicas (PNCP)
 
 ---
 
-# Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 LicitTracker/
-
 ├── backend/
-│   ├── app/
-│   ├── collector_pncp.py
-│   ├── requirements.txt
-│   └── licitacoes_saas.db
+│   ├── app/                          # FastAPI: rotas, models, schemas, auth, scoring, e-mail, observabilidade
+│   ├── tests/                        # Pytest
+│   ├── migrations/                   # Scripts de migração de dados
+│   ├── collector_pncp.py             # Coletor de licitações do PNCP
+│   ├── enviar_notificacoes_diarias.py
+│   └── requirements.txt
 │
 └── frontend/
     ├── src/
-    ├── package.json
-    └── vite.config.js
+    │   ├── pages/                    # Dashboard, Critérios, Favoritos, Pipeline, Equipe, Documentos, Indicadores...
+    │   └── components/
+    ├── e2e/                          # Playwright
+    └── package.json
 ```
 
 ---
 
-# Como executar
+## Como executar
 
-## 1. Clone o projeto
+### 1. Clone o projeto
 
 ```bash
 git clone https://github.com/SEU-USUARIO/LicitTracker.git
-
 cd LicitTracker
 ```
 
----
-
-## 2. Backend
-
-Entre na pasta:
+### 2. Backend
 
 ```bash
 cd backend
-```
-
-Crie um ambiente virtual:
-
-### Windows
-
-```bash
 python -m venv venv
-```
-
-Ative o ambiente:
-
-```bash
-venv\Scripts\activate
-```
-
-Instale as dependências:
-
-```bash
+venv\Scripts\activate        # Windows
 pip install -r requirements.txt
-```
-
-Execute:
-
-```bash
 python -m uvicorn app.main:app --reload
 ```
 
-O backend ficará disponível em:
+- API: `http://127.0.0.1:8000`
+- Documentação interativa (Swagger): `http://127.0.0.1:8000/docs`
 
-```
-http://127.0.0.1:8000
-```
+### 3. Frontend
 
-Documentação:
-
-```
-http://127.0.0.1:8000/docs
-```
-
----
-
-## 3. Frontend
-
-Abra outro terminal.
-
-Entre na pasta:
+Em outro terminal:
 
 ```bash
 cd frontend
-```
-
-Instale as dependências:
-
-```bash
 npm install
-```
-
-Execute:
-
-```bash
 npm run dev
 ```
 
-A aplicação ficará disponível em:
+Aplicação disponível em `http://localhost:5173`
 
-```
-http://localhost:5173
-```
-
----
-
-## Integração com o PNCP
-
-O projeto utiliza os dados disponibilizados pelo Portal Nacional de Contratações Públicas (PNCP).
+### 4. Coleta de dados do PNCP
 
 Antes de visualizar resultados no dashboard, execute o coletor responsável por popular o banco de dados:
 
 ```bash
+cd backend
 python collector_pncp.py
 ```
 
@@ -199,9 +147,9 @@ python collector_pncp.py
 
 ## Notificações por e-mail (resumo diário)
 
-O sistema pode mandar um e-mail diário resumindo as licitações novas que bateram com os critérios de cada empresa. Cada usuário liga/desliga isso em "Notificações" (menu da conta).
+O sistema pode enviar um e-mail diário resumindo as licitações novas que bateram com os critérios de cada empresa. Cada usuário liga/desliga isso em "Notificações" (menu da conta).
 
-Configure as seguintes variáveis de ambiente antes de rodar o envio (no Windows, defina como variável de ambiente do sistema/usuário — Painel de Controle ou `setx`):
+Configure as seguintes variáveis de ambiente antes de rodar o envio (no Windows, via Painel de Controle ou `setx`):
 
 ```
 SMTP_HOST=smtp.gmail.com
@@ -213,20 +161,60 @@ SMTP_FROM=seuemail@gmail.com
 
 > Se sua conta de e-mail tiver verificação em duas etapas (comum no Gmail/Outlook), use uma **senha de app** — não a senha normal da conta.
 
-Pra rodar manualmente:
+Para rodar manualmente:
 
 ```bash
 cd backend
 python enviar_notificacoes_diarias.py
 ```
 
-Pra rodar todo dia automaticamente, agende `backend/rodar_notificacoes_diarias.bat` no Agendador de Tarefas do Windows, uns 30 minutos depois do `rodar_coletor_diario.bat` (precisa que a coleta do dia já tenha terminado).
+Para rodar todo dia automaticamente, agende `backend/rodar_notificacoes_diarias.bat` no Agendador de Tarefas do Windows, uns 30 minutos depois do `rodar_coletor_diario.bat` (precisa que a coleta do dia já tenha terminado).
 
 ---
 
-## Exportação e indicadores
+## Qualidade de código e testes
 
-Na tela de Licitações dá pra exportar o resultado filtrado em CSV, Excel ou PDF. Em "Indicadores" (hub de Ferramentas) dá pra ver gráficos por UF, modalidade e mês de encerramento, sobre o mesmo conjunto filtrado.
+Detalhes completos em [`backend/DEVELOPMENT.md`](backend/DEVELOPMENT.md).
+
+```bash
+# Backend
+cd backend
+pytest -q                      # testes
+pytest --cov=app -q            # com cobertura
+ruff check .                   # lint
+lint-imports                   # contratos de arquitetura
+
+# Frontend
+cd frontend
+npm run test                   # testes unitários (Vitest)
+npm run test:e2e               # end-to-end (Playwright)
+npm run lint                   # lint (Biome)
+npm run knip                   # dependências/exports não usados
+npm run depcruise               # dependências circulares/indevidas
+```
+
+---
+
+## Workflow de contribuição
+
+Este repositório segue o fluxo **Issue → Branch → PR** para qualquer correção,
+melhoria ou nova funcionalidade: uma Issue descreve o problema, uma branch
+(`fix/…`, `feat/…`, `chore/…`) implementa a mudança, e um Pull Request liga as
+duas antes de qualquer merge em `main`. Detalhes em [`CLAUDE.md`](CLAUDE.md).
+
+---
+
+## Objetivos do Projeto
+
+Este projeto foi desenvolvido com os seguintes objetivos:
+
+- Praticar desenvolvimento Full Stack de ponta a ponta (API + interface)
+- Construir APIs REST com FastAPI e autenticação JWT multiempresa
+- Consumir e tratar dados de uma API pública real (PNCP)
+- Desenvolver interfaces modernas e responsivas com React
+- Aplicar boas práticas de engenharia: testes automatizados (unitários, integração, E2E e mutação), observabilidade e análise estática de arquitetura
+- Organizar um workflow de Git rastreável (Issue → Branch → PR)
+- Entregar um projeto aplicável a um cenário real de mercado
 
 ---
 
@@ -237,27 +225,14 @@ O sistema possui:
 - Login e cadastro
 - Dashboard de licitações
 - Gerenciamento de critérios
-- Interface responsiva
-- Identidade visual inspirada em documentos oficiais
-
----
-
-## Objetivos do Projeto
-
-Este projeto foi desenvolvido com os seguintes objetivos:
-
-- Praticar desenvolvimento Full Stack
-- Construir APIs REST utilizando FastAPI
-- Consumir dados de APIs públicas
-- Desenvolver interfaces modernas utilizando React
-- Trabalhar autenticação de usuários
-- Organizar uma arquitetura cliente-servidor
-- Desenvolver um projeto aplicável a um cenário real
+- Pipeline de oportunidades, favoritos e comentários
+- Gestão de equipe e documentos
+- Interface responsiva com identidade visual inspirada em documentos oficiais
 
 ---
 
 ## Próximos Passos
 
-- Hospedagem do sistema (backend + coletor + notificações rodando na nuvem, não só localmente)
+- Hospedagem do sistema em produção (backend + coletor + notificações rodando na nuvem, não só localmente)
 - Notificações por WhatsApp
 - Melhorias na experiência do usuário
