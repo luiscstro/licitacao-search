@@ -24,7 +24,7 @@ export function LogoCompacto({ comTagline = true }) {
 export function LogoCompleto() {
   return (
     <div className="logo-completo">
-      <Marca tamanho={54} />
+      <Marca tamanho={100} />
       <div className="logo-texto grande">
         <span className="licit">Licit</span>
         <span className="tracker">Tracker</span>
