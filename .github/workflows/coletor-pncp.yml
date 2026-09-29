@@ -1,0 +1,36 @@
+name: Coletor de licitações do PNCP
+
+# Roda o coletor num agendamento diário. Existe porque o backend (Render)
+# não consegue rodar isso sozinho — o PNCP bloqueia conexões vindas de lá
+# (connection timeout, não é rate limit; ver DEPLOY.md). O GitHub Actions
+# usa infraestrutura diferente (Azure) e alcança o PNCP normalmente.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC = 03:00 no horário de Brasília
+  workflow_dispatch: # também pode ser disparado manualmente pela aba Actions
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240 # rede de segurança — uma coleta completa (5 modalidades, Brasil inteiro) pode levar horas
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Rodar o coletor
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Opcional: defina COLETOR_MODALIDADES como Variable do repositório
+          # (Settings > Secrets and variables > Actions > Variables) pra
+          # restringir a coleta a modalidades específicas (ex: "6" pra só
+          # Pregão Eletrônico) — sem essa variável, roda todas.
+          COLETOR_MODALIDADES: ${{ vars.COLETOR_MODALIDADES }}
+        run: python collector_pncp.py

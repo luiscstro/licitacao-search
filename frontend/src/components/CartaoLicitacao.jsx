@@ -12,19 +12,24 @@ export default function CartaoLicitacao({ lic, aoMudarFavorito, estilo }) {
   const [pop, setPop] = useState(false);
 
   async function alternarFavorito() {
+    const novoEstado = !favoritada;
+    // Otimista: muda a estrela já, junto com a animação de "pop" — não
+    // espera a resposta da rede (que pode levar mais de 1s), senão a
+    // animação toca e termina bem antes da estrela realmente mudar,
+    // parecendo atrasada/dessincronizada. Só reverte se a chamada falhar.
+    setFavoritada(novoEstado);
     setAlternandoFavorito(true);
     setPop(true);
     setTimeout(() => setPop(false), 260);
     try {
-      if (favoritada) {
-        await api.desfavoritar(lic.numero_controle);
-      } else {
+      if (novoEstado) {
         await api.favoritar(lic.numero_controle);
+      } else {
+        await api.desfavoritar(lic.numero_controle);
       }
-      setFavoritada(!favoritada);
       aoMudarFavorito?.();
     } catch {
-      // silencioso — não é crítico, usuário pode tentar de novo
+      setFavoritada(!novoEstado); // reverte — a chamada não teve sucesso de verdade
     } finally {
       setAlternandoFavorito(false);
     }

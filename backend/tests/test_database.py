@@ -1,0 +1,67 @@
+"""Testes pra app/database.py — normalização de DATABASE_URL e driver Postgres
+instalado. Não conecta em nenhum banco de verdade (SQLAlchemy só resolve o
+dialeto/driver ao tentar conectar, não ao criar o Engine)."""
+
+from sqlalchemy import create_engine
+
+from app import models
+from app.database import normalizar_database_url
+
+
+class TestNormalizarDatabaseUrl:
+    def test_esquema_antigo_postgres_vira_postgresql(self):
+        url = "postgres://usuario:senha@host:5432/banco"
+        assert normalizar_database_url(url) == "postgresql://usuario:senha@host:5432/banco"
+
+    def test_esquema_postgresql_ja_correto_fica_igual(self):
+        url = "postgresql://usuario:senha@host:5432/banco"
+        assert normalizar_database_url(url) == url
+
+    def test_sqlite_fica_igual(self):
+        url = "sqlite:///./licitacoes_saas.db"
+        assert normalizar_database_url(url) == url
+
+    def test_so_troca_a_primeira_ocorrencia(self):
+        # a senha/nome do banco poderiam conter a substring "postgres://" —
+        # só o esquema no início deve ser trocado.
+        url = "postgres://usuario:senha@host/postgres://banco"
+        assert normalizar_database_url(url) == "postgresql://usuario:senha@host/postgres://banco"
+
+
+def test_driver_resolve_para_url_postgresql_bare():
+    """Confirma que uma DATABASE_URL "postgresql://..." (formato mais comum,
+    sem sufixo de driver) resolve pra algum driver Postgres instalado, sem
+    precisar o usuário editar a connection string.
+
+    Com os dois drivers instalados (psycopg2-binary e psycopg[binary], ver
+    requirements.txt), o SQLAlchemy 2.1 passou a preferir psycopg (v3) por
+    padrão nesse caso — versões anteriores preferiam psycopg2. O driver
+    exato não importa pro app (ambos funcionam, confirmado em produção); o
+    que importa é que resolve pra algum instalado, sem erro."""
+    engine = create_engine("postgresql://usuario:senha@localhost:5432/banco")
+    assert engine.dialect.driver in ("psycopg", "psycopg2")
+
+
+def test_driver_psycopg_resolve_para_url_com_sufixo_psycopg():
+    """Confirma que uma DATABASE_URL "postgresql+psycopg://..." (formato que
+    o Neon também oferece) resolve pro driver psycopg (v3) instalado — bug
+    real encontrado em produção: só tínhamos psycopg2-binary instalado, e
+    o deploy quebrou com "ModuleNotFoundError: No module named 'psycopg'"
+    porque a URL usada tinha esse sufixo."""
+    engine = create_engine("postgresql+psycopg://usuario:senha@localhost:5432/banco")
+    assert engine.dialect.driver == "psycopg"
+
+
+def test_texto_busca_nao_tem_indice_btree():
+    """Regressão: um índice B-tree em texto_busca/texto_busca_objeto
+    quebrava o INSERT no Postgres pra licitações com informacao_complementar
+    longa — ProgramLimitExceeded, o limite de tamanho de linha de índice
+    B-tree (bug real, encontrado migrando dados pro Postgres; o SQLite não
+    tem esse limite, por isso nunca apareceu antes). Nenhum dos dois campos
+    precisa de índice: são lidos em Python (scoring.py) ou filtrados com
+    .contains() (LIKE '%termo%', main.py), que não usa índice B-tree."""
+    colunas_indexadas = {
+        coluna.name for indice in models.Licitacao.__table__.indexes for coluna in indice.columns
+    }
+    assert "texto_busca" not in colunas_indexadas
+    assert "texto_busca_objeto" not in colunas_indexadas

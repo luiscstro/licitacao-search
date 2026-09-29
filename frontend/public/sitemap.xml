@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  O LicitTracker é uma SPA de página única sem rotas por URL — tudo depois
+  do login vive em estado do cliente. A raiz é a única URL pública de fato
+  (tela de entrada); por isso o sitemap tem uma única entrada.
+
+  Atualize <loc> quando o domínio de produção final estiver definido —
+  hoje reflete o ID configurado em discloud.config.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://licittraker.discloud.app/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

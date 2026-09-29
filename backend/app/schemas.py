@@ -80,7 +80,12 @@ class EmpresaAtualizar(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshTokenEntrada(BaseModel):
+    refresh_token: str
 
 
 class ConvidarEntrada(BaseModel):
@@ -281,3 +286,19 @@ class IndicadoresDocumentosSaida(BaseModel):
     por_status: list[ContagemPorStatus]
     por_categoria: list[ContagemPorChave]
     ultimas_atualizacoes: list[AtividadeRecente]
+
+
+# ---------- Status do coletor do PNCP ----------
+
+
+class EstadoColetorSaida(BaseModel):
+    ultima_execucao_em: datetime | None = None
+    ultima_execucao_com_sucesso: bool | None = None
+    ultima_coleta_com_sucesso_em: datetime | None = None
+    horas_desde_ultima_coleta_com_sucesso: float | None = None
+    # A última execução falhou por causa do PNCP (rede/instabilidade/erro
+    # do lado deles) — culpa é do PNCP, não da nossa plataforma.
+    pncp_instavel: bool = False
+    # Faz tempo demais desde a última coleta confirmada com sucesso, seja
+    # qual for o motivo (pode incluir o agendamento não ter rodado).
+    dados_desatualizados: bool = False

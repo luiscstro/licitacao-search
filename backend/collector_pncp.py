@@ -19,12 +19,13 @@ Como usar:
     python3 collector_pncp.py
 """
 
+import os
 import sys
 import time
 from datetime import date, timedelta
 
 import requests
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 
 from app import models
 from app.database import Base, SessionLocal, engine
@@ -68,6 +69,15 @@ MODALIDADES = {
 }
 # Pra reativar alguma, é só remover o "#" da linha correspondente e rodar de novo.
 
+# Restringe MODALIDADES em tempo de execução, sem editar o arquivo — útil
+# em ambientes sem acesso a Shell (ex: plano free do Render), onde a única
+# forma de configurar é por variável de ambiente. Ex: COLETOR_MODALIDADES=6
+# roda só Pregão Eletrônico; "6,7" roda Pregão Eletrônico e Presencial.
+_MODALIDADES_OVERRIDE = os.getenv("COLETOR_MODALIDADES")
+if _MODALIDADES_OVERRIDE:
+    _codigos_ativos = {int(c.strip()) for c in _MODALIDADES_OVERRIDE.split(",") if c.strip()}
+    MODALIDADES = {codigo: nome for codigo, nome in MODALIDADES.items() if codigo in _codigos_ativos}
+
 # Se True, busca o Brasil inteiro numa passada só por modalidade (mais
 # rápido — menos requisições). Se False, faz um loop por UF (mais lento,
 # mas útil se você quiser reduzir escopo geográfico de novo no futuro).
@@ -92,6 +102,13 @@ class ErroRequisicaoInvalida(Exception):
     não adianta tentar de novo do mesmo jeito — precisa mudar a estratégia."""
 
     pass
+
+
+# Preenchido sempre que uma página esgota todas as tentativas de retry
+# (buscar_pagina) — sinal de instabilidade real do PNCP, não um problema
+# pontual de uma modalidade específica. Lido no final de main() pra decidir
+# se a rodada foi "sucesso" e alimentar /status/pncp (ver app/main.py).
+FALHAS_PERSISTENTES_PNCP: list[str] = []
 
 
 def buscar_pagina(
@@ -162,6 +179,7 @@ def _coletar_por_uf(session: requests.Session, codigo_modalidade: int, data_fina
             data = buscar_pagina(session, codigo_modalidade, data_final, pagina, uf)
         except RuntimeError as erro:
             print(f"  ✗ Desistindo de UF={uf}: {erro}")
+            FALHAS_PERSISTENTES_PNCP.append(f"modalidade={codigo_modalidade}, uf={uf}: {erro}")
             break
 
         if not data:
@@ -310,91 +328,172 @@ def coletar_modalidade(
     return encontradas
 
 
-def salvar_licitacoes(db: Session, contratacoes: dict):
-    """Grava/atualiza um lote de licitações no banco e já comita — chamado
-    UMA VEZ POR MODALIDADE, assim que ela termina de ser coletada. Isso é
-    o que garante que, mesmo se o script cair no meio (erro inesperado,
-    falta de luz, etc), o que já foi coletado com sucesso não se perde."""
+# Cada lote abre e fecha sua PRÓPRIA conexão (em vez de uma conexão só
+# reaproveitada pra tudo) — com banco remoto (Postgres), segurar uma única
+# conexão por muito tempo (uma modalidade grande pode ter milhares de
+# registros) já causou queda de conexão no meio ("SSL connection has been
+# closed unexpectedly") de forma consistente, sempre no mesmo ponto — sinal
+# de que é um limite de duração de conexão/sessão, não um problema pontual
+# de rede. Lotes menores, cada um com conexão nova, evitam esbarrar nesse
+# limite. Também tem retry: se mesmo assim uma conexão cair no meio de um
+# lote, tenta de novo com outra conexão — como a gravação é um upsert
+# (atualiza se existe, insere se não existe), refazer um lote é seguro.
+TAMANHO_LOTE_COMMIT = 200
+MAX_TENTATIVAS_LOTE = 5
+ESPERA_ENTRE_TENTATIVAS_LOTE = 5
+
+
+def _salvar_lote(lote: list, agora) -> None:
+    """Grava/atualiza um único lote numa conexão nova, própria pra esse
+    lote — commita e fecha a conexão no final."""
+    db = SessionLocal()
+    try:
+        for numero_controle, c in lote:
+            orgao_info = c.get("orgaoEntidade") or {}
+            unidade = c.get("unidadeOrgao") or {}
+            cnpj = orgao_info.get("cnpj")
+            ano = c.get("anoCompra")
+            sequencial = c.get("sequencialCompra")
+            link = (
+                f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
+                if cnpj and ano and sequencial
+                else ""
+            )
+
+            objeto = c.get("objetoCompra", "")
+            orgao_nome = orgao_info.get("razaosocial", "—")
+            cidade = unidade.get("municipioNome", "—")
+            info_complementar = c.get("informacaoComplementar", "") or ""
+            texto_busca = montar_texto_busca(objeto, orgao_nome, cidade, info_complementar)
+            texto_busca_objeto = montar_texto_busca_objeto(objeto, info_complementar)
+
+            existente = (
+                db.query(models.Licitacao)
+                .filter(models.Licitacao.numero_controle == numero_controle)
+                .first()
+            )
+
+            if existente:
+                existente.orgao = orgao_nome
+                existente.cidade = cidade
+                existente.uf = unidade.get("ufSigla", "—")
+                existente.objeto = objeto
+                existente.informacao_complementar = info_complementar
+                existente.valor_estimado = c.get("valorTotalEstimado") or 0
+                existente.modalidade = c.get("modalidadeNome", "—")
+                existente.data_abertura_proposta = c.get("dataAberturaProposta")
+                existente.data_encerramento_proposta = c.get("dataEncerramentoProposta")
+                existente.link_edital = link
+                existente.texto_busca = texto_busca
+                existente.texto_busca_objeto = texto_busca_objeto
+                existente.ultima_vez_vista = agora
+                existente.ativa = True
+            else:
+                db.add(
+                    models.Licitacao(
+                        numero_controle=numero_controle,
+                        orgao=orgao_nome,
+                        cidade=cidade,
+                        uf=unidade.get("ufSigla", "—"),
+                        objeto=objeto,
+                        informacao_complementar=info_complementar,
+                        valor_estimado=c.get("valorTotalEstimado") or 0,
+                        modalidade=c.get("modalidadeNome", "—"),
+                        data_abertura_proposta=c.get("dataAberturaProposta"),
+                        data_encerramento_proposta=c.get("dataEncerramentoProposta"),
+                        link_edital=link,
+                        texto_busca=texto_busca,
+                        texto_busca_objeto=texto_busca_objeto,
+                        primeira_vez_vista=agora,
+                        ultima_vez_vista=agora,
+                        ativa=True,
+                    )
+                )
+
+        db.commit()
+    finally:
+        db.close()
+
+
+def _salvar_lote_com_retry(lote: list, agora) -> None:
+    ultimo_erro = None
+    for tentativa in range(1, MAX_TENTATIVAS_LOTE + 1):
+        try:
+            _salvar_lote(lote, agora)
+            return
+        except OperationalError as erro:
+            ultimo_erro = erro
+            print(f"  ⚠ Conexão caiu salvando lote (tentativa {tentativa}/{MAX_TENTATIVAS_LOTE}): {erro}")
+            time.sleep(ESPERA_ENTRE_TENTATIVAS_LOTE)
+    raise RuntimeError(f"Falha persistente salvando lote após {MAX_TENTATIVAS_LOTE} tentativas: {ultimo_erro}")
+
+
+def salvar_licitacoes(contratacoes: dict):
+    """Grava/atualiza licitações no banco em lotes de TAMANHO_LOTE_COMMIT,
+    cada lote com sua própria conexão — chamado UMA VEZ POR MODALIDADE,
+    assim que ela termina de ser coletada. Isso garante que, mesmo se a
+    conexão cair no meio (comum com banco remoto), só o lote atual precisa
+    ser refeito, não a modalidade inteira."""
     from datetime import datetime
 
     agora = datetime.utcnow()
+    itens = list(contratacoes.items())
 
-    for numero_controle, c in contratacoes.items():
-        orgao_info = c.get("orgaoEntidade") or {}
-        unidade = c.get("unidadeOrgao") or {}
-        cnpj = orgao_info.get("cnpj")
-        ano = c.get("anoCompra")
-        sequencial = c.get("sequencialCompra")
-        link = (
-            f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
-            if cnpj and ano and sequencial
-            else ""
-        )
-
-        objeto = c.get("objetoCompra", "")
-        orgao_nome = orgao_info.get("razaosocial", "—")
-        cidade = unidade.get("municipioNome", "—")
-        info_complementar = c.get("informacaoComplementar", "") or ""
-        texto_busca = montar_texto_busca(objeto, orgao_nome, cidade, info_complementar)
-        texto_busca_objeto = montar_texto_busca_objeto(objeto, info_complementar)
-
-        existente = (
-            db.query(models.Licitacao).filter(models.Licitacao.numero_controle == numero_controle).first()
-        )
-
-        if existente:
-            existente.orgao = orgao_nome
-            existente.cidade = cidade
-            existente.uf = unidade.get("ufSigla", "—")
-            existente.objeto = objeto
-            existente.informacao_complementar = info_complementar
-            existente.valor_estimado = c.get("valorTotalEstimado") or 0
-            existente.modalidade = c.get("modalidadeNome", "—")
-            existente.data_abertura_proposta = c.get("dataAberturaProposta")
-            existente.data_encerramento_proposta = c.get("dataEncerramentoProposta")
-            existente.link_edital = link
-            existente.texto_busca = texto_busca
-            existente.texto_busca_objeto = texto_busca_objeto
-            existente.ultima_vez_vista = agora
-            existente.ativa = True
-        else:
-            db.add(
-                models.Licitacao(
-                    numero_controle=numero_controle,
-                    orgao=orgao_nome,
-                    cidade=cidade,
-                    uf=unidade.get("ufSigla", "—"),
-                    objeto=objeto,
-                    informacao_complementar=info_complementar,
-                    valor_estimado=c.get("valorTotalEstimado") or 0,
-                    modalidade=c.get("modalidadeNome", "—"),
-                    data_abertura_proposta=c.get("dataAberturaProposta"),
-                    data_encerramento_proposta=c.get("dataEncerramentoProposta"),
-                    link_edital=link,
-                    texto_busca=texto_busca,
-                    texto_busca_objeto=texto_busca_objeto,
-                    primeira_vez_vista=agora,
-                    ultima_vez_vista=agora,
-                    ativa=True,
-                )
-            )
-
-    db.commit()
+    for inicio_lote in range(0, len(itens), TAMANHO_LOTE_COMMIT):
+        lote = itens[inicio_lote : inicio_lote + TAMANHO_LOTE_COMMIT]
+        _salvar_lote_com_retry(lote, agora)
 
 
-def marcar_inativas(db: Session, todos_ids_vistos: set):
+def marcar_inativas(todos_ids_vistos: set) -> int:
     """Chamado UMA VEZ, depois que TODAS as modalidades foram coletadas e
     salvas. Marca como inativa qualquer licitação que estava ativa no banco
     mas não apareceu em nenhuma modalidade coletada dessa vez (prazo
     encerrado, retirada, etc)."""
-    todas_ativas = db.query(models.Licitacao).filter(models.Licitacao.ativa == True).all()  # noqa: E712
-    marcadas = 0
-    for lic in todas_ativas:
-        if lic.numero_controle not in todos_ids_vistos:
-            lic.ativa = False
-            marcadas += 1
-    db.commit()
-    return marcadas
+    ultimo_erro = None
+    for tentativa in range(1, MAX_TENTATIVAS_LOTE + 1):
+        db = SessionLocal()
+        try:
+            todas_ativas = db.query(models.Licitacao).filter(models.Licitacao.ativa == True).all()  # noqa: E712
+            marcadas = 0
+            for lic in todas_ativas:
+                if lic.numero_controle not in todos_ids_vistos:
+                    lic.ativa = False
+                    marcadas += 1
+            db.commit()
+            return marcadas
+        except OperationalError as erro:
+            ultimo_erro = erro
+            print(f"  ⚠ Conexão caiu marcando inativas (tentativa {tentativa}/{MAX_TENTATIVAS_LOTE}): {erro}")
+            time.sleep(ESPERA_ENTRE_TENTATIVAS_LOTE)
+        finally:
+            db.close()
+    raise RuntimeError(f"Falha persistente marcando inativas após {MAX_TENTATIVAS_LOTE} tentativas: {ultimo_erro}")
+
+
+def _registrar_estado_coletor(
+    *, sucesso: bool, total_modalidades: int, modalidades_com_falha: int, total_coletado: int, mensagem: str
+) -> None:
+    """Grava o resultado dessa rodada — lido pelo endpoint GET /status/pncp
+    pra avisar o usuário quando o PNCP está instável/fora do ar, em vez de
+    deixar a base parecer "sem novidades" silenciosamente. Usa uma conexão
+    própria (não reaproveita a `db` da coleta) pra não propagar um estado de
+    sessão ruim se a coleta tiver falhado no meio de uma transação."""
+    registro_db = SessionLocal()
+    try:
+        registro_db.add(
+            models.EstadoColetor(
+                sucesso=sucesso,
+                total_modalidades=total_modalidades,
+                modalidades_com_falha=modalidades_com_falha,
+                total_coletado=total_coletado,
+                mensagem=mensagem[:2000],
+            )
+        )
+        registro_db.commit()
+    except Exception as erro:
+        print(f"  ⚠ Não foi possível registrar o estado do coletor: {erro}")
+    finally:
+        registro_db.close()
 
 
 def main():
@@ -410,9 +509,9 @@ def main():
     )
 
     data_final = (date.today() + timedelta(days=JANELA_DIAS)).strftime("%Y%m%d")
-    db = SessionLocal()
     todos_ids_vistos = set()
     inicio = time.time()
+    erro_fatal = None
 
     try:
         for codigo, nome in MODALIDADES.items():
@@ -420,12 +519,13 @@ def main():
                 parciais = coletar_modalidade(session, codigo, nome, data_final)
             except Exception as erro:  # não deixa uma modalidade travar as outras
                 print(f"  ✗ Erro inesperado em modalidade={nome}: {erro}")
+                FALHAS_PERSISTENTES_PNCP.append(f"modalidade={nome}: {erro}")
                 parciais = {}
 
             # Salva JÁ, assim que essa modalidade termina — não espera as
             # outras. Se o script cair depois disso, o que já foi salvo
             # continua salvo.
-            salvar_licitacoes(db, parciais)
+            salvar_licitacoes(parciais)
             todos_ids_vistos.update(parciais.keys())
             print(f"  -> {nome}: {len(parciais)} itens salvos (acumulado: {len(todos_ids_vistos)})\n")
 
@@ -434,11 +534,20 @@ def main():
             f"\nTotal de contratações únicas coletadas: {len(todos_ids_vistos)} (em {duracao_min:.1f} minutos)"
         )
 
-        marcadas = marcar_inativas(db, todos_ids_vistos)
+        marcadas = marcar_inativas(todos_ids_vistos)
         print(f"Licitações marcadas como inativas (sumiram desde a última coleta): {marcadas}")
         print("Base compartilhada de licitações atualizada com sucesso.")
+    except Exception as erro:
+        erro_fatal = erro
+        raise
     finally:
-        db.close()
+        _registrar_estado_coletor(
+            sucesso=erro_fatal is None and not FALHAS_PERSISTENTES_PNCP,
+            total_modalidades=len(MODALIDADES),
+            modalidades_com_falha=len(FALHAS_PERSISTENTES_PNCP),
+            total_coletado=len(todos_ids_vistos),
+            mensagem=str(erro_fatal) if erro_fatal else "; ".join(FALHAS_PERSISTENTES_PNCP[:5]),
+        )
 
 
 if __name__ == "__main__":

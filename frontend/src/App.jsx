@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "./api";
+import AvisoPncp from "./components/AvisoPncp";
 import EsqueletoPagina from "./components/EsqueletoPagina";
 import { LogoCompacto } from "./components/Logo";
 import PainelAjuda from "./components/PainelAjuda";
 import PainelAlertas from "./components/PainelAlertas";
+import Rodape from "./components/Rodape";
 import TelaAutenticacao from "./pages/TelaAutenticacao";
 import { iniciais } from "./utils/data";
 
@@ -162,11 +164,15 @@ export default function App() {
         </div>
       </header>
 
+      <AvisoPncp />
+
       <main className="conteudo">
         <div key={pagina} className="conteudo-pagina">
           <Suspense fallback={<EsqueletoPagina />}>{paginas[pagina]}</Suspense>
         </div>
       </main>
+
+      <Rodape />
 
       {ajudaAberta && <PainelAjuda aoFechar={() => setAjudaAberta(false)} />}
     </div>

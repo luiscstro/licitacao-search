@@ -143,6 +143,13 @@ python collector_pncp.py
 
 ---
 
+## Deploy
+
+Passo a passo pra publicar o backend (Discloud) e o frontend (Render) em
+[`DEPLOY.md`](DEPLOY.md).
+
+---
+
 ## Notificações por e-mail (resumo diário)
 
 O sistema pode enviar um e-mail diário resumindo as licitações novas que bateram com os critérios de cada empresa. Cada usuário liga/desliga isso em "Notificações" (menu da conta).
@@ -230,7 +237,5 @@ O sistema possui:
 
 ## Próximos Passos
 
-- Sistema de autenticação/login de usuários
-- Hospedagem do sistema em produção (backend + coletor + notificações rodando na nuvem, não só localmente)
 - Notificações por WhatsApp
 - Melhorias na experiência do usuário

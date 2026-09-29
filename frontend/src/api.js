@@ -1,31 +1,79 @@
 // URL do backend. Em desenvolvimento, o backend roda em localhost:8000
-// (uvicorn app.main:app --reload). Quando for hospedar de verdade, troque
-// isso pela URL pública do backend (ou use uma variável de ambiente do Vite).
-const API_BASE = "http://127.0.0.1:8000";
+// (uvicorn app.main:app --reload) — sem VITE_API_BASE definida, cai nesse
+// padrão. Em produção, defina VITE_API_BASE (ex: no .env ou nas variáveis de
+// build do Render/Vercel) apontando pra URL pública do backend; o Vite
+// substitui isso em tempo de build (ver frontend/.env.example).
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 function pegarToken() {
   return localStorage.getItem("token");
 }
 
-function salvarToken(token) {
-  localStorage.setItem("token", token);
+function pegarRefreshToken() {
+  return localStorage.getItem("refreshToken");
 }
 
-function limparToken() {
+function salvarTokens(accessToken, refreshToken) {
+  localStorage.setItem("token", accessToken);
+  localStorage.setItem("refreshToken", refreshToken);
+}
+
+function limparTokens() {
   localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+}
+
+// Evita disparar vários /auth/refresh em paralelo quando múltiplas chamadas
+// recebem 401 ao mesmo tempo — todas esperam essa mesma promise em vez de
+// cada uma tentar renovar por conta própria.
+let renovacaoEmAndamento = null;
+
+async function renovarSessao() {
+  const refreshToken = pegarRefreshToken();
+  if (!refreshToken) return null;
+
+  if (!renovacaoEmAndamento) {
+    renovacaoEmAndamento = fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+      .then(async (resp) => {
+        if (!resp.ok) return null;
+        const dados = await resp.json();
+        salvarTokens(dados.access_token, dados.refresh_token);
+        return dados.access_token;
+      })
+      .catch(() => null)
+      .finally(() => {
+        renovacaoEmAndamento = null;
+      });
+  }
+  return renovacaoEmAndamento;
+}
+
+// Faz o fetch autenticado e, se a resposta vier 401 (access token expirado),
+// tenta renovar a sessão via refresh token e repete a chamada original uma
+// única vez. Devolve a Response crua — quem chama decide como interpretá-la.
+async function fetchComRenovacao(url, opcoes = {}, jaTentouRenovar = false) {
+  const token = pegarToken();
+  const headers = { ...(opcoes.headers || {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const resp = await fetch(url, { ...opcoes, headers });
+
+  if (resp.status === 401 && !jaTentouRenovar) {
+    const novoToken = await renovarSessao();
+    if (novoToken) return fetchComRenovacao(url, opcoes, true);
+  }
+  return resp;
 }
 
 async function requisicao(caminho, opcoes = {}) {
-  const token = pegarToken();
-  const headers = {
-    ...(opcoes.headers || {}),
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const resp = await fetch(`${API_BASE}${caminho}`, { ...opcoes, headers });
+  const resp = await fetchComRenovacao(`${API_BASE}${caminho}`, opcoes);
 
   if (resp.status === 401) {
-    limparToken();
+    limparTokens();
     window.location.reload();
     throw new Error("Sessão expirada. Faça login novamente.");
   }
@@ -103,12 +151,23 @@ export const api = {
     }
 
     const dados = await resp.json();
-    salvarToken(dados.access_token);
+    salvarTokens(dados.access_token, dados.refresh_token);
     return dados;
   },
 
   logout() {
-    limparToken();
+    // Limpa localmente na hora (a UI não espera resposta de rede) e revoga
+    // o refresh token no backend em segundo plano — melhor esforço, sem
+    // bloquear nem falhar visivelmente se a chamada não for bem-sucedida.
+    const refreshToken = pegarRefreshToken();
+    limparTokens();
+    if (refreshToken) {
+      fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
   },
 
   estaLogado() {
@@ -200,11 +259,8 @@ export const api = {
   // Dispara o download do arquivo no browser (a resposta é binária, não JSON,
   // então não passa pelo helper `requisicao`).
   async exportarLicitacoes(filtros = {}, formato = "csv") {
-    const token = pegarToken();
     const query = montarQuery({ ...parametrosLicitacoes(filtros), formato });
-    const resp = await fetch(`${API_BASE}/licitacoes/exportar${query}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const resp = await fetchComRenovacao(`${API_BASE}/licitacoes/exportar${query}`);
 
     if (!resp.ok) {
       let detalhe = "Erro ao exportar";
@@ -321,14 +377,16 @@ export const api = {
   // Abre o arquivo (PDF/imagem) numa aba nova — não é JSON, então busca
   // o blob autenticado direto, sem passar pelo helper `requisicao`.
   async baixarArquivoDocumento(id) {
-    const token = pegarToken();
-    const resp = await fetch(`${API_BASE}/documentos/${id}/arquivo`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const resp = await fetchComRenovacao(`${API_BASE}/documentos/${id}/arquivo`);
     if (!resp.ok) throw new Error("Erro ao abrir o arquivo");
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+  },
+
+  // ---------- Status do coletor do PNCP ----------
+  async statusPncp() {
+    return requisicao("/status/pncp");
   },
 };
