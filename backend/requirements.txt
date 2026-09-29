@@ -1,6 +1,14 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
+# Drivers Postgres — usados só quando DATABASE_URL aponta pra um Postgres
+# (ver app/database.py). Instala os dois porque o dialeto que o SQLAlchemy
+# escolhe depende do esquema da URL: "postgresql://" (sem sufixo, formato
+# mais comum) resolve pro psycopg2; "postgresql+psycopg://" (formato que
+# alguns provedores, como o Neon, também oferecem) resolve pro psycopg
+# (v3) — sem os dois instalados, um dos dois formatos quebra o deploy.
+psycopg2-binary
+psycopg[binary]
 python-jose[cryptography]
 bcrypt
 python-multipart

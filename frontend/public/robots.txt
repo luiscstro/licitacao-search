@@ -1,0 +1,7 @@
+# O LicitTracker é uma SPA de página única (sem rotas por URL) — tudo
+# depois do login vive em estado do cliente, não em caminhos separados.
+# Não há nada pra restringir além da própria raiz, que já é pública.
+User-agent: *
+Allow: /
+
+Sitemap: https://licittraker.discloud.app/sitemap.xml

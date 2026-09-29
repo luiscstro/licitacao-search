@@ -139,8 +139,18 @@ class Licitacao(Base):
     # - texto_busca: objeto + órgão + cidade + informação complementar.
     #   Mais abrangente — usado só na busca LIVRE, onde faz sentido
     #   encontrar por nome de cidade ou órgão também.
-    texto_busca_objeto = Column(Text, default="", index=True)
-    texto_busca = Column(Text, default="", index=True)
+    #
+    # SEM index=True de propósito: os dois só são lidos em Python
+    # (scoring.py) ou filtrados com .contains() (LIKE '%termo%', main.py) —
+    # nenhum dos dois usa um índice B-tree pra nada (só acelera
+    # LIKE 'prefixo%'). Um índice aqui só causa problema: no Postgres,
+    # licitações com informacao_complementar longa geram um texto_busca
+    # maior que o limite de tamanho de linha de índice B-tree
+    # (ProgramLimitExceeded: "index row size ... exceeds ... maximum"),
+    # quebrando o INSERT inteiro — bug real encontrado migrando dados pro
+    # Postgres (SQLite não tem esse limite, por isso nunca apareceu antes).
+    texto_busca_objeto = Column(Text, default="")
+    texto_busca = Column(Text, default="")
 
     primeira_vez_vista = Column(DateTime, default=datetime.utcnow)
     ultima_vez_vista = Column(DateTime, default=datetime.utcnow)
@@ -194,6 +204,41 @@ class Oportunidade(Base):
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     atualizado_por = relationship("User")
+
+
+class RefreshToken(Base):
+    """Refresh token revogável usado pra renovar o access token (JWT de vida
+    curta) sem pedir login de novo. Guardamos só o hash — nunca o token em
+    texto puro — igual senha; se o banco vazar, os tokens continuam inúteis."""
+
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    expira_em = Column(DateTime, nullable=False)
+    revogado_em = Column(DateTime, nullable=True)
+
+    usuario = relationship("User")
+
+
+class EstadoColetor(Base):
+    """Registro de cada execução do coletor do PNCP (`collector_pncp.py`) —
+    uma linha por rodada, não uma linha só sobrescrita, pra dar histórico.
+    Usado pelo endpoint /status/pncp pra avisar o usuário quando o PNCP
+    está instável/fora do ar, em vez de deixar a base parecer "sem
+    novidades" silenciosamente quando na verdade a coleta falhou."""
+
+    __tablename__ = "estado_coletor"
+
+    id = Column(Integer, primary_key=True, index=True)
+    executado_em = Column(DateTime, default=datetime.utcnow, index=True)
+    sucesso = Column(Boolean, default=True)
+    total_modalidades = Column(Integer, default=0)
+    modalidades_com_falha = Column(Integer, default=0)
+    total_coletado = Column(Integer, default=0)
+    mensagem = Column(Text, default="")
 
 
 CATEGORIAS_DOCUMENTO = ["juridica", "fiscal", "trabalhista", "economico_financeira", "tecnica", "outra"]

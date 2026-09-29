@@ -464,6 +464,73 @@ a:focus-visible {
   margin: 0 auto;
 }
 
+/* ============================================================
+   Rodapé (app autenticado)
+   ============================================================ */
+
+.rodape {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  padding: 18px 52px;
+  border-top: 1px solid var(--linha);
+  font-size: 12.5px;
+  color: var(--slate-dim);
+}
+
+.rodape-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rodape-marca {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
+.rodape-marca .licit {
+  color: var(--ink);
+}
+.rodape-marca .tracker {
+  color: var(--selo-gold-deep);
+}
+
+.rodape-separador {
+  color: var(--slate-line);
+}
+
+.rodape-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rodape-links button {
+  all: unset;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--slate-dim);
+  transition: color var(--transicao);
+}
+
+.rodape-links button:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .rodape {
+    padding: 16px 24px;
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 860px) {
   .navbar-topo {
     gap: 14px;
@@ -601,6 +668,10 @@ a:focus-visible {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 16px;
+  /* min-width: 0 é o que permite encolher dentro de .linha-dupla (grid de
+     2 colunas) — sem isso, o input não encolhe abaixo do seu tamanho
+     intrínseco e o campo vaza pra fora do card em telas mais estreitas. */
+  min-width: 0;
 }
 
 .campo label {
@@ -740,6 +811,37 @@ a:focus-visible {
 }
 
 /* ============================================================
+   Aviso de status do coletor do PNCP (faixa abaixo da navbar)
+   ============================================================ */
+
+.aviso-pncp {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 24px;
+  font-size: 13px;
+  line-height: 1.55;
+  animation: subir var(--duracao-padrao) cubic-bezier(0.2, 0.6, 0.3, 1) both;
+}
+
+.aviso-pncp svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.aviso-pncp.instavel {
+  background: var(--selo-gold-soft);
+  color: var(--selo-gold-deep);
+  border-bottom: 1px solid var(--selo-gold);
+}
+
+.aviso-pncp.desatualizado {
+  background: var(--paper-card);
+  color: var(--slate);
+  border-bottom: 1px solid var(--slate-line);
+}
+
+/* ============================================================
    Tela de autenticação
    ============================================================ */
 
@@ -837,6 +939,32 @@ a:focus-visible {
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.auth-legal {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--linha);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--slate-dim);
+}
+
+.auth-legal span {
+  color: var(--slate-line);
+}
+
+.auth-legal button {
+  all: unset;
+  cursor: pointer;
+  color: var(--slate-dim);
+  transition: color var(--transicao);
+}
+
+.auth-legal button:hover {
+  color: var(--ink);
 }
 
 @media (max-width: 860px) {
@@ -1093,6 +1221,15 @@ a:focus-visible {
   box-shadow: var(--sombra-md);
 }
 
+/* min-width: 0 é o que permite esse bloco encolher e quebrar linha
+   dentro do flex row do .item-criterio — sem isso, um resumo de critério
+   longo (vários termos/estados/modalidades) empurra o card pra fora do
+   quadro em vez de quebrar linha. */
+.item-criterio .info-criterio {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
 .item-criterio .nome-criterio {
   font-weight: 600;
   font-size: 15px;
@@ -1102,11 +1239,13 @@ a:focus-visible {
   font-size: 12.5px;
   color: var(--slate);
   margin-top: 4px;
+  overflow-wrap: break-word;
 }
 
 .item-criterio .acoes {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .card-formulario {
@@ -1192,6 +1331,7 @@ a:focus-visible {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   box-shadow: var(--sombra-lg);
   animation: subir 180ms cubic-bezier(0.2, 0.6, 0.3, 1);
 }
@@ -1541,6 +1681,49 @@ a:focus-visible {
   font-size: 13px;
   line-height: 1.6;
   color: var(--slate);
+}
+
+/* ============================================================
+   Painel legal (Termos / Privacidade / Cookies)
+   ============================================================ */
+
+.painel-legal {
+  max-width: 560px;
+  max-height: 78vh;
+  overflow-y: auto;
+}
+
+.painel-legal-corpo {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--slate);
+}
+
+.painel-legal-corpo p {
+  margin: 0 0 14px;
+}
+.painel-legal-corpo p:last-child {
+  margin-bottom: 0;
+}
+
+.painel-legal-corpo ul {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.painel-legal-corpo strong {
+  color: var(--ink);
+}
+
+.painel-legal-corpo code {
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  background: var(--paper);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 /* ============================================================

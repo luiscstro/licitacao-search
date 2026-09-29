@@ -1,0 +1,18 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec) — cria o
+# serviço do frontend via "New" > "Blueprint" no dashboard do Render,
+# apontando pra este repositório. Veja DEPLOY.md pro passo a passo completo.
+#
+# O backend roda na Discloud, não no Render (o PNCP bloqueia a faixa de IP
+# do Render — ver DEPLOY.md seção 1). VITE_API_BASE abaixo já aponta pro
+# domínio do backend na Discloud.
+
+services:
+  - type: web
+    name: licittracker-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        value: https://licittraker.discloud.dev

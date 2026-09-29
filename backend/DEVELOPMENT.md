@@ -133,7 +133,7 @@ vírgula). Sem a variável, só os origins de desenvolvimento local são aceitos
 produção, defina com o(s) domínio(s) real(is) do frontend:
 
 ```bash
-export CORS_ORIGINS="https://licittraker.discloud.app"
+export CORS_ORIGINS="https://licittracker-frontend.onrender.com"
 ```
 
 `app/security_headers.py` adiciona `X-Content-Type-Options`,
