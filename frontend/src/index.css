@@ -1124,6 +1124,15 @@ a:focus-visible {
   box-shadow: var(--sombra-md);
 }
 
+/* min-width: 0 é o que permite esse bloco encolher e quebrar linha
+   dentro do flex row do .item-criterio — sem isso, um resumo de critério
+   longo (vários termos/estados/modalidades) empurra o card pra fora do
+   quadro em vez de quebrar linha. */
+.item-criterio .info-criterio {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
 .item-criterio .nome-criterio {
   font-weight: 600;
   font-size: 15px;
@@ -1133,11 +1142,13 @@ a:focus-visible {
   font-size: 12.5px;
   color: var(--slate);
   margin-top: 4px;
+  overflow-wrap: break-word;
 }
 
 .item-criterio .acoes {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .card-formulario {

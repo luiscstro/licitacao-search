@@ -167,7 +167,30 @@ manualmente ou via Agendador de Tarefas do Windows — mas esse caminho
 local continua funcionando (seção 3.3) se você preferir, ou quiser rodar
 uma coleta pontual sem esperar o agendamento.
 
-## 8. Depois do deploy
+## 8. Latência (login/carregamento lentos)
+
+Medido de verdade no site publicado: uma rota sem banco responde em ~0,5s,
+mas uma rota com **uma** query no Postgres já passa de 1s, e o login
+(2 queries + verificação de senha) passa de 3s. Duas causas concretas:
+
+1. **Backend e banco em regiões diferentes.** O Neon está em `sa-east-1`
+   (São Paulo) — se o backend do Render estiver rodando numa região dos
+   EUA (padrão do plano free, ex: Oregon), toda query cruza o continente
+   duas vezes (ida e volta). Verifique/troque a região do serviço
+   `licittracker-backend` no Render (**Settings** do serviço, campo
+   Region) pra uma o mais próxima possível do Brasil/América do Sul, se
+   houver essa opção disponível na sua conta — o Render não deixa trocar a
+   região de um serviço já existente, então isso normalmente exige recriar
+   o serviço (**New** → **Web Service** de novo, apontando pro mesmo repo,
+   escolhendo a região certa dessa vez) e reconfigurar as variáveis de
+   ambiente (`SECRET_KEY`, `ADMIN_TOKEN`, `DATABASE_URL`) e o
+   `VITE_API_BASE` do frontend pra nova URL.
+2. **CPU limitada do plano free** deixa o `bcrypt` (usado pra verificar
+   senha no login) bem mais lento que o normal — isso é esperado em
+   qualquer plano free compartilhado; só melhora migrando pra um plano
+   pago com mais CPU dedicada.
+
+## 9. Depois do deploy
 
 Atualize a URL pública no `README.md` e no campo "Website" do repositório
 no GitHub (**Settings** → topo da página, ícone de engrenagem ao lado de
