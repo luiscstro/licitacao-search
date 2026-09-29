@@ -187,7 +187,7 @@ http://localhost:5173
 
 ## Deploy
 
-Passo a passo pra publicar backend e frontend gratuitamente (Render) em
+Passo a passo pra publicar o backend (Discloud) e o frontend (Render) em
 [`DEPLOY.md`](DEPLOY.md).
 
 ---

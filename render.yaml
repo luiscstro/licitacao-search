@@ -1,31 +1,12 @@
-# Blueprint do Render (https://render.com/docs/blueprint-spec) — cria os
-# dois serviços de uma vez via "New" > "Blueprint" no dashboard do Render,
-# apontando pra este repositório. Veja DEPLOY.md pro passo a passo completo
-# (inclusive o fallback manual, caso o blueprint precise de ajuste).
+# Blueprint do Render (https://render.com/docs/blueprint-spec) — cria o
+# serviço do frontend via "New" > "Blueprint" no dashboard do Render,
+# apontando pra este repositório. Veja DEPLOY.md pro passo a passo completo.
 #
-# IMPORTANTE: VITE_API_BASE abaixo assume que o backend ficará publicado em
-# https://licittracker-backend.onrender.com (nome do serviço abaixo + domínio
-# padrão do Render). Se o Render sufixar o nome por já estar em uso, ajuste
-# esse valor pra URL real do backend antes/depois do primeiro deploy.
+# O backend roda na Discloud, não no Render (o PNCP bloqueia a faixa de IP
+# do Render — ver DEPLOY.md seção 1). VITE_API_BASE abaixo já aponta pro
+# domínio do backend na Discloud.
 
 services:
-  - type: web
-    name: licittracker-backend
-    env: python
-    plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.7
-      - key: SECRET_KEY
-        generateValue: true
-      # Autentica POST /admin/coletar-pncp — dispara o coletor sem precisar
-      # de Shell (recurso pago no plano free). Veja DEPLOY.md seção 3.
-      - key: ADMIN_TOKEN
-        generateValue: true
-
   - type: web
     name: licittracker-frontend
     env: static
@@ -34,4 +15,4 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE
-        value: https://licittracker-backend.onrender.com
+        value: https://licittraker.discloud.dev
