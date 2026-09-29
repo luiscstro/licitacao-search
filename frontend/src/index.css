@@ -569,8 +569,9 @@ a:focus-visible {
   gap: 10px;
 }
 
-.logo-marca-svg {
+.logo-marca-img {
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 .logo-texto-wrap {

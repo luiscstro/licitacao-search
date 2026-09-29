@@ -1,26 +1,9 @@
-// Marca "LicitTracker" — ícone recriado em SVG a partir do brandbook
-// (quadrado arredondado + check dourado) e wordmark em Poppins.
+// Marca "LicitTracker" — raposa com lupa (brandbook) e wordmark em Poppins.
+
+import logoRaposa from "../assets/logo-raposa.png";
 
 function Marca({ tamanho = 30 }) {
-  return (
-    <svg
-      width={tamanho}
-      height={tamanho}
-      viewBox="0 0 40 40"
-      fill="none"
-      aria-hidden="true"
-      className="logo-marca-svg"
-    >
-      <rect x="2" y="2" width="36" height="36" rx="10" stroke="var(--selo-gold)" strokeWidth="2.25" />
-      <path
-        d="M11.5 20.5L16.5 25.5L28.5 13.5"
-        stroke="var(--selo-gold)"
-        strokeWidth="3.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <img src={logoRaposa} alt="" width={tamanho} height={tamanho} className="logo-marca-img" />;
 }
 
 export function LogoCompacto({ comTagline = true }) {
