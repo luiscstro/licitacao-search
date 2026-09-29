@@ -28,7 +28,16 @@ DATABASE_URL = normalizar_database_url(os.getenv("DATABASE_URL", "sqlite:///./li
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# pool_pre_ping: testa a conexão (SELECT 1) antes de cada uso e reconecta
+# sozinho se estiver morta, em vez de estourar erro na query real. Necessário
+# porque o Postgres gerenciado (Neon) fecha conexões ociosas do seu lado sem
+# avisar o pool do SQLAlchemy — sem isso, a primeira query após um período
+# de inatividade falha com "SSL connection has been closed unexpectedly".
+# pool_recycle descarta proativamente conexões com mais de 5 min, pra nunca
+# depender de uma conexão sobreviver mais tempo que o timeout do Neon.
+pool_kwargs = {} if DATABASE_URL.startswith("sqlite") else {"pool_pre_ping": True, "pool_recycle": 300}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args, **pool_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
