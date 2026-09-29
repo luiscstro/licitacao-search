@@ -28,12 +28,18 @@ class TestNormalizarDatabaseUrl:
         assert normalizar_database_url(url) == "postgresql://usuario:senha@host/postgres://banco"
 
 
-def test_driver_psycopg2_resolve_para_url_postgresql_bare():
+def test_driver_resolve_para_url_postgresql_bare():
     """Confirma que uma DATABASE_URL "postgresql://..." (formato mais comum,
-    sem sufixo de driver) resolve pro driver psycopg2-binary instalado —
-    sem precisar o usuário editar a connection string."""
+    sem sufixo de driver) resolve pra algum driver Postgres instalado, sem
+    precisar o usuário editar a connection string.
+
+    Com os dois drivers instalados (psycopg2-binary e psycopg[binary], ver
+    requirements.txt), o SQLAlchemy 2.1 passou a preferir psycopg (v3) por
+    padrão nesse caso — versões anteriores preferiam psycopg2. O driver
+    exato não importa pro app (ambos funcionam, confirmado em produção); o
+    que importa é que resolve pra algum instalado, sem erro."""
     engine = create_engine("postgresql://usuario:senha@localhost:5432/banco")
-    assert engine.dialect.driver == "psycopg2"
+    assert engine.dialect.driver in ("psycopg", "psycopg2")
 
 
 def test_driver_psycopg_resolve_para_url_com_sufixo_psycopg():
