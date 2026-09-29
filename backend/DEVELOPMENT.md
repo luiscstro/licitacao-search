@@ -124,3 +124,45 @@ export SENTRY_DSN=https://sua-chave@sentry.io/seu-projeto
 
 Tudo isso é configurado em `app/observability.py`, chamado uma única vez em
 `app/main.py` logo depois de `app = FastAPI(...)`.
+
+## CORS e headers de segurança
+
+`CORS_ORIGINS` controla quais origens podem chamar a API (separadas por
+vírgula). Sem a variável, só os origins de desenvolvimento local são aceitos
+(`http://localhost:5173`, `http://127.0.0.1:5173`) — nunca `"*"`. Em
+produção, defina com o(s) domínio(s) real(is) do frontend:
+
+```bash
+export CORS_ORIGINS="https://licittracker-frontend.onrender.com"
+```
+
+`app/security_headers.py` adiciona `X-Content-Type-Options`,
+`X-Frame-Options` e `Referrer-Policy` em toda resposta. HTTPS/HSTS não são
+configurados aqui de propósito — isso é responsabilidade do proxy/hospedagem
+quando o app for publicado, não da aplicação.
+
+## SPF, DKIM e DMARC (e-mail)
+
+Isso **não dá pra configurar por código** — são registros DNS do domínio que
+envia o e-mail (o `SMTP_FROM`/`SMTP_USER` de `app/email_utils.py`), então
+depende de acesso ao provedor de DNS desse domínio.
+
+- **Usando SMTP do Gmail** (o padrão sugerido no README, `SMTP_USER=seuemail@gmail.com`):
+  o Gmail já assina e autentica os e-mails enviados pelos servidores dele —
+  não precisa configurar nada. A desvantagem é que o remetente aparece como
+  "via gmail.com" pra alguns clientes de e-mail, e cai mais fácil em spam em
+  volume alto.
+- **Usando um domínio próprio** (ex: `notificacoes@licittracker.com.br`):
+  aí sim você precisa criar, no provedor de DNS desse domínio:
+  - **SPF** — registro TXT autorizando o servidor SMTP a enviar em nome do
+    domínio (ex: `v=spf1 include:_spf.google.com ~all` se usar Google
+    Workspace, ou o valor específico do seu provedor SMTP).
+  - **DKIM** — o provedor SMTP gera um par de chaves; você publica a chave
+    pública como registro TXT (geralmente em `<seletor>._domainkey.seudominio.com`).
+  - **DMARC** — registro TXT em `_dmarc.seudominio.com` dizendo o que fazer
+    com e-mails que falham SPF/DKIM (ex:
+    `v=DMARC1; p=quarantine; rua=mailto:voce@seudominio.com`).
+
+Cada provedor (Google Workspace, SES, SendGrid, Mailgun...) te dá os valores
+exatos pra copiar — normalmente numa tela de "verificar domínio" no painel
+deles.
