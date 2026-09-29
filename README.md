@@ -1,5 +1,7 @@
 # LicitTracker
 
+**Aplicação publicada:** <https://licittracker-frontend.onrender.com>
+
 Plataforma full stack de monitoramento de licitações públicas brasileiras. O sistema coleta dados do **Portal Nacional de Contratações Públicas (PNCP)**, aplica um motor de pontuação de relevância por empresa e organiza tudo em um fluxo de trabalho completo — da descoberta da oportunidade até o acompanhamento da equipe responsável, passando por favoritos, pipeline de decisão, documentos e indicadores.
 
 Projeto pessoal desenvolvido para aprofundar conhecimentos de desenvolvimento Full Stack: back-end com Python/FastAPI, front-end com React, integração com API pública, arquitetura multiempresa e práticas de engenharia de software (testes automatizados, observabilidade, qualidade de código e workflow de Git baseado em Issue → Branch → PR).
@@ -103,13 +105,21 @@ LicitTracker/
 
 ---
 
-## Como executar
+## Como executar localmente
+
+A versão publicada (link no topo) já roda com dados reais — rodar localmente só é
+necessário pra inspecionar/alterar o código.
+
+### Pré-requisitos
+
+- Python 3.11 ou mais recente
+- Node.js 18 ou mais recente
 
 ### 1. Clone o projeto
 
 ```bash
-git clone https://github.com/SEU-USUARIO/LicitTracker.git
-cd LicitTracker
+git clone https://github.com/luiscstro/licitacao-search.git
+cd licitacao-search
 ```
 
 ### 2. Backend
@@ -117,13 +127,26 @@ cd LicitTracker
 ```bash
 cd backend
 python -m venv venv
+```
+
+Ative o ambiente virtual (o comando muda conforme o sistema):
+
+```bash
 venv\Scripts\activate        # Windows
+source venv/bin/activate     # macOS/Linux
+```
+
+```bash
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
 
 - API: `http://127.0.0.1:8000`
 - Documentação interativa (Swagger): `http://127.0.0.1:8000/docs`
+
+Sem nenhuma variável de ambiente configurada, o backend sobe com SQLite local
+(zero configuração) e gera uma `SECRET_KEY` temporária — suficiente pra rodar e
+testar localmente.
 
 ### 3. Frontend
 
@@ -137,12 +160,19 @@ npm run dev
 
 Aplicação disponível em `http://localhost:5173`
 
-### 4. Coleta de dados do PNCP
+### 4. Popular o banco local com dados do PNCP
 
-Antes de visualizar resultados no dashboard, execute o coletor responsável por popular o banco de dados:
+Sem isso, o dashboard fica vazio. Rodando todas as modalidades (padrão), a
+coleta pode levar várias horas — pra um teste rápido, restrinja a uma
+modalidade (ex: `6` = Pregão Eletrônico):
 
 ```bash
 cd backend
+# Windows (PowerShell):
+$env:COLETOR_MODALIDADES = "6"
+# macOS/Linux:
+export COLETOR_MODALIDADES=6
+
 python collector_pncp.py
 ```
 
