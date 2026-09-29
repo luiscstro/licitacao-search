@@ -601,6 +601,10 @@ a:focus-visible {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 16px;
+  /* min-width: 0 é o que permite encolher dentro de .linha-dupla (grid de
+     2 colunas) — sem isso, o input não encolhe abaixo do seu tamanho
+     intrínseco e o campo vaza pra fora do card em telas mais estreitas. */
+  min-width: 0;
 }
 
 .campo label {
