@@ -6,14 +6,19 @@ Projeto pessoal desenvolvido para aprofundar conhecimentos de desenvolvimento Fu
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
-### 👥 Equipe
+### Autenticação e segurança
+- Login com JWT: access token de vida curta (60 min) e refresh token revogável, com rotação a cada uso
+- Rate limiting no login contra força bruta
+- CORS restrito por lista de origens permitidas e headers de segurança de resposta (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`)
+
+### Equipe
 - Empresas com múltiplos usuários (multiempresa/multiusuário)
-- Sincronização de dados da empresa por CNPJ
+- Sincronização de dados da empresa por CNPJ (com validação de dígito verificador, cache e rate limiting nas APIs externas)
 - Convite de membros para a equipe
 
-### 📋 Critérios de monitoramento
+### Critérios de monitoramento
 Cada empresa pode criar seus próprios critérios de busca, definindo:
 
 - Nome do critério
@@ -25,36 +30,36 @@ Cada empresa pode criar seus próprios critérios de busca, definindo:
 
 Critérios podem ser editados e excluídos a qualquer momento.
 
-### 📊 Dashboard de Licitações
+### Dashboard de Licitações
 - Licitações filtradas e pontuadas conforme os critérios cadastrados (motor de *scoring* de relevância)
 - Estado (UF), cidade, valor estimado, número do processo (PNCP) e link direto para o edital
 - Alerta para licitações próximas do encerramento
 - Visualização de todas as licitações ou apenas as de um critério específico
 - Exportação dos resultados filtrados em CSV, Excel ou PDF
 
-### ⭐ Favoritos e 🗂 Pipeline
+### Favoritos e Pipeline
 - Marcação de licitações como favoritas para acompanhamento rápido
-- Pipeline (kanban) de oportunidades, com etapas de decisão por licitação
+- Pipeline (kanban) de oportunidades, compartilhado pela equipe, com etapas de decisão por licitação
 - Comentários por licitação, para registrar o histórico de análise da equipe
 
-### 📁 Documentos
+### Documentos
 - Upload, substituição e histórico de versões de documentos por licitação/empresa
 - Indicadores de completude documental
 
-### 📈 Indicadores
+### Indicadores
 - Gráficos por UF, modalidade e mês de encerramento sobre o conjunto filtrado (hub de Ferramentas)
 
-### 🔔 Notificações
+### Notificações
 - Resumo diário por e-mail das licitações novas que bateram com os critérios de cada empresa
 - Ativação/desativação por usuário
 
 ---
 
-## 🛠 Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 ### Backend
 - Python + FastAPI
-- SQLAlchemy + SQLite
+- SQLAlchemy + PostgreSQL (produção) / SQLite (desenvolvimento local)
 - Pydantic
 - `openpyxl` / `fpdf2` para exportação (Excel/PDF)
 - Uvicorn
