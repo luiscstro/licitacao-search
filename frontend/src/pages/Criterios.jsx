@@ -146,7 +146,7 @@ export default function Criterios() {
           <div className="lista-criterios entrada-escalonada">
             {criterios.map((c, indice) => (
               <div className="item-criterio" key={c.id} style={{ "--i": indice }}>
-                <div>
+                <div className="info-criterio">
                   <div className="nome-criterio">{c.nome}</div>
                   <div className="resumo-criterio">{resumoCriterio(c)}</div>
                 </div>
